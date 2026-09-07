@@ -28,6 +28,7 @@ namespace MahjongOut3D.Managers
         [SerializeField, Min(0.1f)] private float trayMatchLandingScale = 1.5f;
         [SerializeField, Min(0.05f)] private float trayMatchPreviewMinDurationSeconds = 0.34f;
         [SerializeField, Range(0.1f, 1f)] private float trayMatchEffectTriggerNormalized = 0.82f;
+        [SerializeField, Range(0f, 90f)] private float matchTileMaxTiltAngle = 70f;
         [SerializeField] private Image trayCapacityWarningImage;
         [SerializeField, Min(0.05f)] private float trayShakeDurationSeconds = 1f;
         [SerializeField, Min(0f)] private float trayShakeAmplitude = 1.5f;
@@ -569,38 +570,75 @@ namespace MahjongOut3D.Managers
                 Quaternion secondImpactRotation = uprightCardRotation;
 
                 float duration = GetMatchDurationSeconds();
-                float elapsed = 0f;
-                float liftPhaseDuration = duration * 0.6f;
-                float collidePhaseDuration = Mathf.Max(0.05f, duration - liftPhaseDuration);
+                float approachDuration = Mathf.Max(0.05f, duration * 0.38f);
+                float holdDuration = Mathf.Max(0.08f, duration * 0.2f);
+                float leanBackDuration = Mathf.Max(0.07f, duration * 0.18f);
+                float impactDuration = Mathf.Max(0.05f, duration - (approachDuration + holdDuration + leanBackDuration));
 
-                while (elapsed < liftPhaseDuration)
+                float firstTileTiltDirection = firstTile.transform.position.x <= secondTile.transform.position.x ? 1f : -1f;
+                float secondTileTiltDirection = -firstTileTiltDirection;
+
+                float elapsed = 0f;
+                while (elapsed < approachDuration)
                 {
                     elapsed += GetDeltaTime();
-                    float t = Mathf.Clamp01(elapsed / liftPhaseDuration);
+                    float t = Mathf.Clamp01(elapsed / approachDuration);
                     float easedT = 1f - Mathf.Pow(1f - t, 3f);
+                    Quaternion firstTravelRotation = Quaternion.SlerpUnclamped(firstRotationStart, firstStageRotation, easedT);
+                    Quaternion secondTravelRotation = Quaternion.SlerpUnclamped(secondRotationStart, secondStageRotation, easedT);
 
                     firstTile.transform.SetPositionAndRotation(
                         Vector3.LerpUnclamped(firstStart, firstStageWorld, easedT),
-                        Quaternion.SlerpUnclamped(firstRotationStart, firstStageRotation, easedT));
+                        firstTravelRotation);
                     secondTile.transform.SetPositionAndRotation(
                         Vector3.LerpUnclamped(secondStart, secondStageWorld, easedT),
-                        Quaternion.SlerpUnclamped(secondRotationStart, secondStageRotation, easedT));
+                        secondTravelRotation);
+                    yield return null;
+                }
+
+                firstTile.transform.SetPositionAndRotation(firstStageWorld, firstStageRotation);
+                secondTile.transform.SetPositionAndRotation(secondStageWorld, secondStageRotation);
+
+                elapsed = 0f;
+                while (elapsed < holdDuration)
+                {
+                    elapsed += GetDeltaTime();
+                    firstTile.transform.SetPositionAndRotation(firstStageWorld, firstStageRotation);
+                    secondTile.transform.SetPositionAndRotation(secondStageWorld, secondStageRotation);
                     yield return null;
                 }
 
                 elapsed = 0f;
-                while (elapsed < collidePhaseDuration)
+                while (elapsed < leanBackDuration)
                 {
                     elapsed += GetDeltaTime();
-                    float t = Mathf.Clamp01(elapsed / collidePhaseDuration);
+                    float t = Mathf.Clamp01(elapsed / leanBackDuration);
+                    float easedT = 1f - Mathf.Pow(1f - t, 2f);
+                    float tiltAngle = Mathf.Lerp(0f, matchTileMaxTiltAngle * 0.9f, easedT);
+                    Quaternion firstLeanRotation = firstStageRotation * Quaternion.Euler(0f, 0f, firstTileTiltDirection * tiltAngle);
+                    Quaternion secondLeanRotation = secondStageRotation * Quaternion.Euler(0f, 0f, secondTileTiltDirection * tiltAngle);
+
+                    firstTile.transform.SetPositionAndRotation(firstStageWorld, firstLeanRotation);
+                    secondTile.transform.SetPositionAndRotation(secondStageWorld, secondLeanRotation);
+                    yield return null;
+                }
+
+                elapsed = 0f;
+                while (elapsed < impactDuration)
+                {
+                    elapsed += GetDeltaTime();
+                    float t = Mathf.Clamp01(elapsed / impactDuration);
                     float easedT = 1f - Mathf.Pow(1f - t, 4f);
+                    float tiltAngle = Mathf.Lerp(matchTileMaxTiltAngle * 0.9f, 0f, easedT);
+                    Quaternion firstImpactTiltRotation = Quaternion.SlerpUnclamped(firstStageRotation, firstImpactRotation, easedT) * Quaternion.Euler(0f, 0f, firstTileTiltDirection * tiltAngle);
+                    Quaternion secondImpactTiltRotation = Quaternion.SlerpUnclamped(secondStageRotation, secondImpactRotation, easedT) * Quaternion.Euler(0f, 0f, secondTileTiltDirection * tiltAngle);
 
                     firstTile.transform.SetPositionAndRotation(
                         Vector3.LerpUnclamped(firstStageWorld, firstImpactWorld, easedT),
-                        Quaternion.SlerpUnclamped(firstStageRotation, firstImpactRotation, easedT));
+                        firstImpactTiltRotation);
                     secondTile.transform.SetPositionAndRotation(
                         Vector3.LerpUnclamped(secondStageWorld, secondImpactWorld, easedT),
-                        Quaternion.SlerpUnclamped(secondStageRotation, secondImpactRotation, easedT));
+                        secondImpactTiltRotation);
                     yield return null;
                 }
 
@@ -972,7 +1010,7 @@ namespace MahjongOut3D.Managers
                 return traySlotAnchorProvider;
             }
 
-            traySlotAnchorProvider = FindFirstObjectByType<TraySlotAnchorProvider>(FindObjectsInactive.Include);
+            traySlotAnchorProvider = FindAnyObjectByType<TraySlotAnchorProvider>(FindObjectsInactive.Include);
             return traySlotAnchorProvider;
         }
 
@@ -1437,8 +1475,9 @@ namespace MahjongOut3D.Managers
             float halfWidthFirst = firstStartSize.x * 0.5f;
             float halfWidthSecond = secondStartSize.x * 0.5f;
             float landingContactOffset = Mathf.Max(10f, (halfWidthFirst + halfWidthSecond) * 0.22f);
-            Vector2 firstImpactPos = landingCenter - (Vector2.right * landingContactOffset);
-            Vector2 secondImpactPos = landingCenter + (Vector2.right * landingContactOffset);
+            float landingSeparationOffset = landingContactOffset + 40f;
+            Vector2 firstImpactPos = landingCenter - (Vector2.right * landingSeparationOffset);
+            Vector2 secondImpactPos = landingCenter + (Vector2.right * landingSeparationOffset);
             float firstSide = firstStartPos.x <= secondStartPos.x ? -1f : 1f;
             float secondSide = -firstSide;
             Vector2 firstControlOne = BuildTrayMatchFirstArcControlPoint(firstStartPos, firstImpactPos, firstSide);
@@ -1447,31 +1486,93 @@ namespace MahjongOut3D.Managers
             Vector2 secondControlTwo = BuildTrayMatchSecondArcControlPoint(secondStartPos, secondImpactPos, secondSide);
             float duration = GetTrayMatchPreviewDurationSeconds();
             float effectTriggerT = GetTrayMatchEffectTriggerNormalized();
-            float flightDuration = Mathf.Max(0.05f, duration * effectTriggerT);
+            float travelDuration = Mathf.Max(0.05f, duration * 0.42f);
+            float holdDuration = Mathf.Max(0.08f, duration * 0.18f);
+            float leanBackDuration = Mathf.Max(0.12f, duration * 0.28f);
+            float throwDuration = Mathf.Max(0.05f, duration - (travelDuration + holdDuration + leanBackDuration));
             float elapsed = 0f;
             Vector3 firstLandingScale = firstStartScale * Mathf.Max(0.1f, trayMatchLandingScale);
             Vector3 secondLandingScale = secondStartScale * Mathf.Max(0.1f, trayMatchLandingScale);
 
-            while (elapsed < flightDuration)
+            float firstTileTiltDirection = firstStartPos.x <= secondStartPos.x ? 1f : -1f;
+            float secondTileTiltDirection = -firstTileTiltDirection;
+            Vector2 firstThrowPos = firstImpactPos + (Vector2.right * firstSide * Mathf.Max(18f, landingContactOffset * 0.8f));
+            Vector2 secondThrowPos = secondImpactPos + (Vector2.right * secondSide * Mathf.Max(18f, landingContactOffset * 0.8f));
+
+            while (elapsed < travelDuration)
             {
                 elapsed += GetDeltaTime();
-                float t = Mathf.Clamp01(elapsed / Mathf.Max(0.01f, duration));
-                float scaleT = Mathf.Clamp01(elapsed / flightDuration);
+                float t = Mathf.Clamp01(elapsed / Mathf.Max(0.01f, travelDuration));
                 float easedT = 1f - Mathf.Pow(1f - t, 3f);
+                float scaleT = Mathf.Clamp01(elapsed / Mathf.Max(0.01f, travelDuration));
                 float easedScaleT = 1f - Mathf.Pow(1f - scaleT, 3f);
 
                 firstRect.anchoredPosition = EvaluateCubicBezier(firstStartPos, firstControlOne, firstControlTwo, firstImpactPos, easedT);
                 secondRect.anchoredPosition = EvaluateCubicBezier(secondStartPos, secondControlOne, secondControlTwo, secondImpactPos, easedT);
                 firstRect.localScale = Vector3.LerpUnclamped(firstStartScale, firstLandingScale, easedScaleT);
                 secondRect.localScale = Vector3.LerpUnclamped(secondStartScale, secondLandingScale, easedScaleT);
+                firstRect.localRotation = Quaternion.identity;
+                secondRect.localRotation = Quaternion.identity;
                 yield return null;
             }
 
-            float finalEasedT = 1f - Mathf.Pow(1f - effectTriggerT, 3f);
-            firstRect.anchoredPosition = EvaluateCubicBezier(firstStartPos, firstControlOne, firstControlTwo, firstImpactPos, finalEasedT);
-            secondRect.anchoredPosition = EvaluateCubicBezier(secondStartPos, secondControlOne, secondControlTwo, secondImpactPos, finalEasedT);
+            firstRect.anchoredPosition = firstImpactPos;
+            secondRect.anchoredPosition = secondImpactPos;
             firstRect.localScale = firstLandingScale;
             secondRect.localScale = secondLandingScale;
+            firstRect.localRotation = Quaternion.identity;
+            secondRect.localRotation = Quaternion.identity;
+
+            elapsed = 0f;
+            while (elapsed < holdDuration)
+            {
+                elapsed += GetDeltaTime();
+                firstRect.anchoredPosition = firstImpactPos;
+                secondRect.anchoredPosition = secondImpactPos;
+                firstRect.localScale = firstLandingScale;
+                secondRect.localScale = secondLandingScale;
+                firstRect.localRotation = Quaternion.identity;
+                secondRect.localRotation = Quaternion.identity;
+                yield return null;
+            }
+
+            bool firstUsesLeftCornerPivot = firstStartPos.x <= secondStartPos.x;
+            bool secondUsesLeftCornerPivot = !firstUsesLeftCornerPivot;
+            firstRect.anchoredPosition = firstImpactPos;
+            secondRect.anchoredPosition = secondImpactPos;
+
+            elapsed = 0f;
+            while (elapsed < leanBackDuration)
+            {
+                elapsed += GetDeltaTime();
+                float t = Mathf.Clamp01(elapsed / Mathf.Max(0.01f, leanBackDuration));
+                float easedT = 1f - Mathf.Pow(1f - t, 3f);
+                float leanAngle = Mathf.Lerp(0f, matchTileMaxTiltAngle * 0.9f, easedT);
+                ApplyCornerLeanWithoutPositionJump(firstRect, firstImpactPos, firstUsesLeftCornerPivot, firstTileTiltDirection * leanAngle);
+                ApplyCornerLeanWithoutPositionJump(secondRect, secondImpactPos, secondUsesLeftCornerPivot, secondTileTiltDirection * leanAngle);
+                yield return null;
+            }
+
+            elapsed = 0f;
+            while (elapsed < throwDuration)
+            {
+                elapsed += GetDeltaTime();
+                float t = Mathf.Clamp01(elapsed / Mathf.Max(0.01f, throwDuration));
+                float easedT = 1f - Mathf.Pow(1f - t, 4f);
+                float throwProgress = Mathf.Clamp01(elapsed / Mathf.Max(0.01f, throwDuration));
+                float leanAngle = Mathf.Lerp(matchTileMaxTiltAngle * 0.85f, 0f, throwProgress);
+
+                Vector2 firstCurrentPos = Vector2.LerpUnclamped(firstImpactPos, firstThrowPos, easedT);
+                Vector2 secondCurrentPos = Vector2.LerpUnclamped(secondImpactPos, secondThrowPos, easedT);
+                ApplyCornerLeanWithoutPositionJump(firstRect, firstCurrentPos, firstUsesLeftCornerPivot, firstTileTiltDirection * leanAngle);
+                ApplyCornerLeanWithoutPositionJump(secondRect, secondCurrentPos, secondUsesLeftCornerPivot, secondTileTiltDirection * leanAngle);
+                yield return null;
+            }
+
+            firstRect.anchoredPosition = firstThrowPos;
+            secondRect.anchoredPosition = secondThrowPos;
+            firstRect.localRotation = Quaternion.identity;
+            secondRect.localRotation = Quaternion.identity;
 
             Vector2 effectCenter = (firstRect.anchoredPosition + secondRect.anchoredPosition) * 0.5f;
             PlayMatchFeedbackUi(firstTile, secondTile, effectCenter, firstPreview, secondPreview);
@@ -1544,6 +1645,27 @@ namespace MahjongOut3D.Managers
                 + new Vector2(resolvedSide * Mathf.Max(1f, trayMatchArcSideDistance) * 0.55f, Mathf.Max(0f, trayMatchArcLift) * 0.35f);
         }
 
+        private static void ApplyCornerLeanWithoutPositionJump(RectTransform rect, Vector2 basePosition, bool useLeftCorner, float angleDegrees)
+        {
+            if (rect == null)
+            {
+                return;
+            }
+
+            Vector2 size = rect.rect.size;
+            Vector2 centerToCorner = useLeftCorner
+                ? new Vector2(size.x * 0.5f, size.y * 0.5f)
+                : new Vector2(-size.x * 0.5f, size.y * 0.5f);
+
+            float radians = angleDegrees * Mathf.Deg2Rad;
+            Vector2 rotatedOffset = new Vector2(
+                (centerToCorner.x * Mathf.Cos(radians)) - (centerToCorner.y * Mathf.Sin(radians)),
+                (centerToCorner.x * Mathf.Sin(radians)) + (centerToCorner.y * Mathf.Cos(radians)));
+
+            rect.anchoredPosition = basePosition + (rotatedOffset - centerToCorner);
+            rect.localRotation = Quaternion.Euler(0f, 0f, angleDegrees);
+        }
+
         private static Vector2 EvaluateCubicBezier(Vector2 start, Vector2 controlOne, Vector2 controlTwo, Vector2 end, float t)
         {
             float inverseT = 1f - t;
@@ -1581,21 +1703,27 @@ namespace MahjongOut3D.Managers
             float flightDuration = Mathf.Max(0.05f, duration * effectTriggerT);
             float elapsed = 0f;
 
+            float tiltDirection = startPos.x <= landingPos.x ? 1f : -1f;
+
             while (elapsed < flightDuration)
             {
                 elapsed += GetDeltaTime();
                 float t = Mathf.Clamp01(elapsed / Mathf.Max(0.01f, duration));
                 float scaleT = Mathf.Clamp01(elapsed / flightDuration);
+                float progress = Mathf.Clamp01(elapsed / Mathf.Max(0.01f, flightDuration));
                 float easedT = 1f - Mathf.Pow(1f - t, 3f);
                 float easedScaleT = 1f - Mathf.Pow(1f - scaleT, 3f);
+                float tiltAngle = matchTileMaxTiltAngle * Mathf.Sin(progress * Mathf.PI);
                 rect.anchoredPosition = EvaluateCubicBezier(startPos, controlOne, controlTwo, landingPos, easedT);
                 rect.localScale = Vector3.LerpUnclamped(startScale, landingScale, easedScaleT);
+                rect.localRotation = Quaternion.Euler(0f, 0f, tiltDirection * tiltAngle);
                 yield return null;
             }
 
             float finalEasedT = 1f - Mathf.Pow(1f - effectTriggerT, 3f);
             rect.anchoredPosition = EvaluateCubicBezier(startPos, controlOne, controlTwo, landingPos, finalEasedT);
             rect.localScale = landingScale;
+            rect.localRotation = Quaternion.identity;
 
             PlayMatchFeedbackUi(tileWithPreview, otherTile, rect.anchoredPosition, preview, null);
             onImpact?.Invoke();
