@@ -75,12 +75,34 @@ namespace MahjongOut3D.LevelSystem
             out Vector3 tangentV)
         {
             normal = GetNormal(face);
-            tangentU = face == VoxelGridDirection.Left || face == VoxelGridDirection.Right
-                ? Vector3.forward
-                : Vector3.right;
-            tangentV = face == VoxelGridDirection.Up || face == VoxelGridDirection.Down
-                ? Vector3.forward
-                : Vector3.up;
+            switch (face)
+            {
+                case VoxelGridDirection.Back:
+                    tangentU = Vector3.right;
+                    tangentV = Vector3.up;
+                    break;
+                case VoxelGridDirection.Forward:
+                    tangentU = Vector3.right;
+                    tangentV = Vector3.up;
+                    break;
+                case VoxelGridDirection.Left:
+                    tangentU = Vector3.forward;
+                    tangentV = Vector3.up;
+                    break;
+                case VoxelGridDirection.Right:
+                    tangentU = Vector3.back;
+                    tangentV = Vector3.up;
+                    break;
+                case VoxelGridDirection.Down:
+                    tangentU = Vector3.right;
+                    tangentV = Vector3.back;
+                    break;
+                case VoxelGridDirection.Up:
+                default:
+                    tangentU = Vector3.right;
+                    tangentV = Vector3.forward;
+                    break;
+            }
 
             Quaternion roll = Quaternion.AngleAxis(NormalizeRoll(rollQuarterTurns) * 90f, normal);
             tangentU = (roll * tangentU).normalized;
@@ -92,22 +114,54 @@ namespace MahjongOut3D.LevelSystem
             int rollQuarterTurns,
             VoxelGridDirection adjacentSide)
         {
-            GetSurfaceBasis(surfaceFace, rollQuarterTurns, out Vector3 normal, out Vector3 tangentU, out Vector3 tangentV);
+            // Authoring uses the board/camera convention where Back is +Z and
+            // Forward is -Z. Keep these controls independent from the tile's roll.
             switch (adjacentSide)
             {
                 case VoxelGridDirection.Left:
-                    return -tangentU;
+                    return Vector3.left;
                 case VoxelGridDirection.Right:
-                    return tangentU;
+                    return Vector3.right;
                 case VoxelGridDirection.Down:
-                    return -tangentV;
+                    return Vector3.down;
                 case VoxelGridDirection.Up:
-                    return tangentV;
+                    return Vector3.up;
                 case VoxelGridDirection.Back:
-                    return -normal;
+                    return Vector3.forward;
                 case VoxelGridDirection.Forward:
                 default:
-                    return normal;
+                    return Vector3.back;
+            }
+        }
+
+        public static void GetAdjacentTangentialBasis(
+            VoxelGridDirection adjacentSide,
+            out Vector3 tangentU,
+            out Vector3 tangentV)
+        {
+            switch (adjacentSide)
+            {
+                case VoxelGridDirection.Left:
+                case VoxelGridDirection.Right:
+                    tangentU = Vector3.right;
+                    tangentV = Vector3.up;
+                    break;
+                case VoxelGridDirection.Up:
+                case VoxelGridDirection.Down:
+                    tangentU = Vector3.right;
+                    tangentV = Vector3.forward;
+                    break;
+                case VoxelGridDirection.Back:
+                    tangentU = Vector3.right;
+                    tangentV = Vector3.up;
+                    break;
+                case VoxelGridDirection.Forward:
+                default:
+                    // Positive U is always screen-right; negative U is screen-left.
+                    // Forward is -Z, so do not flip U when changing depth direction.
+                    tangentU = Vector3.right;
+                    tangentV = Vector3.up;
+                    break;
             }
         }
 

@@ -26,6 +26,16 @@ namespace MahjongOut3D.LevelSystem
     }
 
     /// <summary>
+    /// Selects the exact amount of tangential overlap for an adjacent tile.
+    /// </summary>
+    public enum TileAdjacentOffsetMode
+    {
+        Flush = 0,
+        Quarter = 1,
+        Half = 2,
+    }
+
+    /// <summary>
     /// Selects the default pose used when creating a new tile in the authoring window.
     /// </summary>
     public enum TileDefaultPlacementPose
@@ -78,10 +88,12 @@ namespace MahjongOut3D.LevelSystem
         [SerializeField] private Vector3 localPosition;
         [SerializeField] private TileSurfacePose pose = new TileSurfacePose();
         [SerializeField] private bool useSnapOffset;
+        [SerializeField] private string snapSourceStableId;
         [SerializeField] private VoxelGridDirection snapDirection = VoxelGridDirection.Right;
         [SerializeField, Range(-4, 4)] private int snapOffsetU;
         [SerializeField, Range(-4, 4)] private int snapOffsetV;
         [SerializeField] private TileSnapOffsetSizeSource snapOffsetSizeSource = TileSnapOffsetSizeSource.SourceTile;
+        [SerializeField] private TileAdjacentOffsetMode adjacentOffsetMode = TileAdjacentOffsetMode.Flush;
         [SerializeField] private Vector3 finePositionOffset;
         [SerializeField] private Vector3 fineRotationOffset;
         [SerializeField, Min(0)] private int surfaceShellIndex;
@@ -119,6 +131,13 @@ namespace MahjongOut3D.LevelSystem
             set => useSnapOffset = value;
         }
 
+        public string SnapSourceStableId => snapSourceStableId;
+
+        public void SetSnapSource(TileAuthoringEntry source)
+        {
+            snapSourceStableId = source != null ? source.StableId : string.Empty;
+        }
+
         public VoxelGridDirection SnapDirection
         {
             get => snapDirection;
@@ -141,6 +160,12 @@ namespace MahjongOut3D.LevelSystem
         {
             get => snapOffsetSizeSource;
             set => snapOffsetSizeSource = value;
+        }
+
+        public TileAdjacentOffsetMode AdjacentOffsetMode
+        {
+            get => adjacentOffsetMode;
+            set => adjacentOffsetMode = value;
         }
 
         public Vector3 FinePositionOffset
@@ -180,6 +205,12 @@ namespace MahjongOut3D.LevelSystem
             snapOffsetV = offsetV;
         }
 
+        public void SetSnapOffset(TileAuthoringEntry source, VoxelGridDirection direction, int offsetU, int offsetV)
+        {
+            SetSnapSource(source);
+            SetSnapOffset(direction, offsetU, offsetV);
+        }
+
         public static TileAuthoringEntry Create(int matchId, Vector3 position, VoxelGridDirection face, int rollQuarterTurns)
         {
             TileAuthoringEntry entry = new TileAuthoringEntry
@@ -207,8 +238,8 @@ namespace MahjongOut3D.LevelSystem
         [SerializeField] private TileLayoutSnapMode snapMode = TileLayoutSnapMode.Quarter;
         [SerializeField] private TileDefaultPlacementPose defaultPlacementPose = TileDefaultPlacementPose.Standing;
         [SerializeField] private TilePlacementPosture defaultPosture = TilePlacementPosture.Vertical;
-        [SerializeField] private VoxelGridDirection defaultStandingFace = VoxelGridDirection.Forward;
-        [SerializeField, Range(0, 3)] private int defaultStandingRoll;
+        [SerializeField] private VoxelGridDirection defaultStandingFace = VoxelGridDirection.Back;
+        [SerializeField, Range(0, 3)] private int defaultStandingRoll = 3;
         [SerializeField, Min(0f)] private float snapDistance = 0.18f;
         [SerializeField, Min(0f)] private float tileGap = 0.03f;
         [SerializeField] private List<TileAuthoringEntry> entries = new List<TileAuthoringEntry>();

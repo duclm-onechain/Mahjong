@@ -93,6 +93,7 @@ namespace MahjongOut3D.Editor
             TileLayoutSnapMode snapMode = (TileLayoutSnapMode)EditorGUILayout.EnumPopup("Snap Step", layout.SnapMode);
             TileDefaultPlacementPose defaultPose = (TileDefaultPlacementPose)EditorGUILayout.EnumPopup("Default Tile Pose", layout.DefaultPlacementPose);
             TilePlacementPosture defaultPosture = (TilePlacementPosture)EditorGUILayout.EnumPopup("Default Posture", layout.DefaultPosture);
+            EditorGUILayout.HelpBox("Default: Standing + Vertical + Back. Adjacent Left/Right/Up/Down follow the visible surface of the selected tile.", MessageType.None);
             VoxelGridDirection defaultStandingFace = layout.DefaultStandingFace;
             int defaultStandingRoll = layout.DefaultStandingRoll;
             if (defaultPose == TileDefaultPlacementPose.Standing || defaultPose == TileDefaultPlacementPose.Sideways || defaultPose == TileDefaultPlacementPose.Custom)
@@ -174,6 +175,7 @@ namespace MahjongOut3D.Editor
             if (entry.UseSnapOffset)
             {
                 entry.SnapDirection = (VoxelGridDirection)EditorGUILayout.EnumPopup("Adjacent Side", entry.SnapDirection);
+                entry.AdjacentOffsetMode = (TileAdjacentOffsetMode)EditorGUILayout.EnumPopup("Overlap", entry.AdjacentOffsetMode);
                 entry.SnapOffsetSizeSource = (TileSnapOffsetSizeSource)EditorGUILayout.EnumPopup("Offset Size From", entry.SnapOffsetSizeSource);
                 int divisions = layout.SnapOffsetDivisions;
                 EditorGUILayout.LabelField("Tangential Offset", layout.SnapMode == TileLayoutSnapMode.Half
@@ -223,8 +225,9 @@ namespace MahjongOut3D.Editor
         private void SetSnapOffset(TileAuthoringEntry entry, int offsetU, int offsetV)
         {
             Undo.RecordObject(layout, "Set Tile Snap Offset");
-            entry.SetSnapOffset(entry.SnapDirection, offsetU, offsetV);
-            ApplyAdjacentSnap(entry);
+            TileAuthoringEntry source = FindSnapSource(entry);
+            entry.SetSnapOffset(source, entry.SnapDirection, offsetU, offsetV);
+            ApplyAdjacentSnap(entry, source);
         }
 
         private void CreateAdjacentTile(VoxelGridDirection direction)
@@ -242,9 +245,8 @@ namespace MahjongOut3D.Editor
                 source.Pose.RollQuarterTurns);
             // Adjacent creation inherits the complete pose of the source tile.
             created.FineRotationOffset = source.FineRotationOffset;
-            created.SnapDirection = direction;
+            created.SetSnapOffset(source, direction, 0, 0);
             created.SnapOffsetSizeSource = TileSnapOffsetSizeSource.SourceTile;
-            created.UseSnapOffset = true;
             layout.AddEntry(created);
             selectedEntry = layout.Entries.Count - 1;
             ApplyAdjacentSnap(created, source);
@@ -254,7 +256,7 @@ namespace MahjongOut3D.Editor
 
         private void ApplyAdjacentSnap(TileAuthoringEntry entry)
         {
-            ApplyAdjacentSnap(entry, FindNearestEntry(entry.ResolvedPosition, entry));
+            ApplyAdjacentSnap(entry, FindSnapSource(entry));
         }
 
         private void ApplyAdjacentSnap(TileAuthoringEntry entry, TileAuthoringEntry source)
@@ -266,8 +268,8 @@ namespace MahjongOut3D.Editor
 
             Undo.RecordObject(layout, "Apply Adjacent Tile Snap");
             Vector3 sourceRotation = source.ResolvedEulerAngles;
-            // The six buttons are local directions relative to the source tile pose.
-            // The new tile keeps that same pose; only its position changes.
+            // The six buttons describe the visible board directions, not the prefab's
+            // local axes. The new tile keeps the source pose; only its position changes.
             Vector3 targetRotation = sourceRotation;
             entry.Pose.Face = source.Pose.Face;
             entry.Pose.RollQuarterTurns = source.Pose.RollQuarterTurns;
@@ -278,26 +280,27 @@ namespace MahjongOut3D.Editor
                 source.Pose.Face,
                 source.Pose.RollQuarterTurns,
                 entry.SnapDirection);
-            TileSnapMath.GetSurfaceBasis(
-                source.Pose.Face,
-                source.Pose.RollQuarterTurns,
-                out _,
+            TileSnapMath.GetAdjacentTangentialBasis(
+                entry.SnapDirection,
                 out Vector3 tangentU,
                 out Vector3 tangentV);
+            // Keep the corner frame board-relative. The source's 270-degree tile roll
+            // must not rotate Left/Right into Up/Down or collapse a diagonal to one axis.
+            tangentU = tangentU.normalized;
+            tangentV = tangentV.normalized;
             Quaternion sizeSourceRotation = entry.SnapOffsetSizeSource == TileSnapOffsetSizeSource.SourceTile
                 ? sourceQuaternion
                 : targetQuaternion;
-            Vector3 offset = TileSnapMath.GetTangentialOffset(
-                tileSize,
+            Vector3 offset = GetBoardCornerOffset(
                 sizeSourceRotation,
                 tangentU,
                 tangentV,
                 entry.SnapOffsetU,
-                entry.SnapOffsetV,
-                layout.SnapOffsetDivisions);
+                entry.SnapOffsetV);
             Vector3 sourcePosition = source.ResolvedPosition;
-            Vector3 adjacent = TileSnapMath.GetAdjacentPosition(
-                sourcePosition,
+            Vector3 sourceRootPosition = sourcePosition - (sourceQuaternion * tilePrefab.GetPlacementOffset());
+            Vector3 adjacentRootPosition = TileSnapMath.GetAdjacentPosition(
+                sourceRootPosition,
                 sourceQuaternion,
                 tileSize,
                 tileSize,
@@ -305,11 +308,49 @@ namespace MahjongOut3D.Editor
                 direction,
                 layout.TileGap,
                 Vector2.zero);
+            Vector3 adjacent = adjacentRootPosition + (targetQuaternion * tilePrefab.GetPlacementOffset());
+            adjacent += GetOverlapOffset(entry, source, direction, tangentU, tangentV);
+            entry.SnapOffsetU = Mathf.Clamp(entry.SnapOffsetU, -4, 4);
+            entry.SnapOffsetV = Mathf.Clamp(entry.SnapOffsetV, -4, 4);
             entry.FinePositionOffset = adjacent + offset - entry.LocalPosition;
             entry.LocalPosition = entry.ResolvedPosition;
             entry.FinePositionOffset = Vector3.zero;
             EditorUtility.SetDirty(layout);
             SceneView.RepaintAll();
+        }
+
+        private Vector3 GetBoardCornerOffset(
+            Quaternion sizeSourceRotation,
+            Vector3 tangentU,
+            Vector3 tangentV,
+            int offsetU,
+            int offsetV)
+        {
+            float fractionU = Mathf.Clamp(offsetU, -4, 4) / 4f;
+            float fractionV = Mathf.Clamp(offsetV, -4, 4) / 4f;
+            float width = TileSnapMath.GetOrientedExtent(tileSize, sizeSourceRotation, tangentU) * 2f;
+            float height = TileSnapMath.GetOrientedExtent(tileSize, sizeSourceRotation, tangentV) * 2f;
+            return tangentU.normalized * (width * fractionU)
+                + tangentV.normalized * (height * fractionV);
+        }
+
+        private Vector3 GetOverlapOffset(TileAuthoringEntry entry, TileAuthoringEntry source, Vector3 direction, Vector3 tangentU, Vector3 tangentV)
+        {
+            TileAdjacentOffsetMode mode = entry.AdjacentOffsetMode;
+            if (mode == TileAdjacentOffsetMode.Flush)
+            {
+                return Vector3.zero;
+            }
+
+            float overlapFraction = mode == TileAdjacentOffsetMode.Half ? 0.5f : 0.25f;
+            Quaternion sourceRotation = Quaternion.Euler(source.ResolvedEulerAngles);
+            Quaternion targetRotation = Quaternion.Euler(entry.ResolvedEulerAngles);
+            float sourceTangentWidth = TileSnapMath.GetOrientedExtent(tileSize, sourceRotation, direction) * 2f;
+            float targetTangentWidth = TileSnapMath.GetOrientedExtent(tileSize, targetRotation, direction) * 2f;
+            float overlap = Mathf.Min(sourceTangentWidth, targetTangentWidth) * overlapFraction;
+            // Overlap is only along the selected adjacent axis. The U/V offset is
+            // applied separately so Forward + Left + Down becomes a real corner.
+            return -direction.normalized * overlap;
         }
 
         private void OnSceneGUI(SceneView sceneView)
@@ -427,7 +468,10 @@ namespace MahjongOut3D.Editor
                     preview.name = $"PreviewTile_{index}";
                 }
 
-                preview.transform.SetLocalPositionAndRotation(entry.ResolvedPosition, Quaternion.Euler(entry.ResolvedEulerAngles));
+                Quaternion previewRotation = Quaternion.Euler(entry.ResolvedEulerAngles);
+                Vector3 placementOffset = tilePrefab.GetPlacementOffset();
+                Vector3 previewRootPosition = entry.ResolvedPosition - (previewRotation * placementOffset);
+                preview.transform.SetLocalPositionAndRotation(previewRootPosition, previewRotation);
                 preview.gameObject.SetActive(true);
             }
         }
@@ -477,6 +521,23 @@ namespace MahjongOut3D.Editor
             }
         }
 
+        private TileAuthoringEntry FindSnapSource(TileAuthoringEntry entry)
+        {
+            if (entry != null && !string.IsNullOrEmpty(entry.SnapSourceStableId))
+            {
+                for (int index = 0; index < layout.Entries.Count; index++)
+                {
+                    TileAuthoringEntry candidate = layout.Entries[index];
+                    if (candidate != null && candidate.StableId == entry.SnapSourceStableId)
+                    {
+                        return candidate;
+                    }
+                }
+            }
+
+            return entry == null ? null : FindNearestEntry(entry.ResolvedPosition, entry);
+        }
+
         private TileAuthoringEntry FindNearestEntry(Vector3 position, TileAuthoringEntry ignoredEntry)
         {
             TileAuthoringEntry nearest = null;
@@ -508,7 +569,15 @@ namespace MahjongOut3D.Editor
             }
 
             Undo.RecordObject(layout, "Duplicate Mahjong Tile");
-            TileAuthoringEntry copy = TileAuthoringEntry.Create(source.MatchId, source.ResolvedPosition + Vector3.right * 0.25f, source.Pose.Face, source.Pose.RollQuarterTurns);
+            TileAuthoringEntry copy = TileAuthoringEntry.Create(
+                source.MatchId,
+                source.ResolvedPosition,
+                source.Pose.Face,
+                source.Pose.RollQuarterTurns);
+            copy.FinePositionOffset = source.FinePositionOffset;
+            copy.FineRotationOffset = source.FineRotationOffset;
+            copy.SnapOffsetSizeSource = source.SnapOffsetSizeSource;
+            copy.SetSnapOffset(source, VoxelGridDirection.Right, 0, 0);
             layout.AddEntry(copy);
             selectedEntry = layout.Entries.Count - 1;
             EditorUtility.SetDirty(layout);
