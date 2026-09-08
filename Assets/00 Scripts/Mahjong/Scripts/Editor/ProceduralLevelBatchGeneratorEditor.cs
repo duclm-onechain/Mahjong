@@ -40,6 +40,12 @@ namespace MahjongOut3D.Editor
             {
                 GenerateLevelsFromGoogleSheetUrl((ProceduralLevelBatchGenerator)target);
             }
+
+            EditorGUILayout.Space();
+            if (GUILayout.Button("Open Manual Tile Layout Editor"))
+            {
+                TileLayoutAuthoringWindow.Open();
+            }
         }
 
         /// <summary>

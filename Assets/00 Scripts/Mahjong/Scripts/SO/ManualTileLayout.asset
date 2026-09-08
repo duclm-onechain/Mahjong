@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 424c3f822e972368d87a7eebcb266b72, type: 3}
+  m_Name: ManualTileLayout
+  m_EditorClassIdentifier: Assembly-CSharp::MahjongOut3D.LevelSystem.TileLayoutAuthoring
+  layoutName: Manual Layout
+  gridSize:
+    width: 8
+    height: 8
+    depth: 8
+  layoutOverride: {fileID: 0}
+  tilePrefab: {fileID: -5892857342694290962, guid: 1e089effe00ac8f89ab118777d5f166b, type: 3}
+  snapMode: 2
+  defaultPlacementPose: 1
+  defaultPosture: 1
+  defaultStandingFace: 4
+  defaultStandingRoll: 3
+  snapDistance: 0.18
+  tileGap: 0.03
+  entries: []
