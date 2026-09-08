@@ -166,6 +166,9 @@ namespace MahjongOut3D.Editor
             }
 
             TileAuthoringEntry entry = layout.Entries[selectedEntry];
+            VoxelGridDirection previousFace = entry.Pose.Face;
+            int previousRoll = entry.Pose.RollQuarterTurns;
+            Vector3 previousFineRotation = entry.FineRotationOffset;
             EditorGUI.BeginChangeCheck();
             entry.MatchId = EditorGUILayout.IntField("Match ID", entry.MatchId);
             entry.LocalPosition = EditorGUILayout.Vector3Field("Position", entry.LocalPosition);
@@ -175,6 +178,7 @@ namespace MahjongOut3D.Editor
             if (entry.UseSnapOffset)
             {
                 entry.SnapDirection = (VoxelGridDirection)EditorGUILayout.EnumPopup("Adjacent Side", entry.SnapDirection);
+                entry.AdjacentDirectionSpace = (TileAdjacentDirectionSpace)EditorGUILayout.EnumPopup("Direction Space", entry.AdjacentDirectionSpace);
                 entry.AdjacentOffsetMode = (TileAdjacentOffsetMode)EditorGUILayout.EnumPopup("Overlap", entry.AdjacentOffsetMode);
                 entry.SnapOffsetSizeSource = (TileSnapOffsetSizeSource)EditorGUILayout.EnumPopup("Offset Size From", entry.SnapOffsetSizeSource);
                 int divisions = layout.SnapOffsetDivisions;
@@ -211,9 +215,38 @@ namespace MahjongOut3D.Editor
             if (EditorGUI.EndChangeCheck())
             {
                 Undo.RecordObject(layout, "Edit Mahjong Tile Placement");
+                bool poseChanged = previousFace != entry.Pose.Face
+                    || previousRoll != entry.Pose.RollQuarterTurns
+                    || previousFineRotation != entry.FineRotationOffset;
+                if (poseChanged)
+                {
+                    RepositionAfterPoseChange(entry);
+                }
+
                 EditorUtility.SetDirty(layout);
                 SceneView.RepaintAll();
             }
+        }
+
+        private void RepositionAfterPoseChange(TileAuthoringEntry entry)
+        {
+            if (entry == null)
+            {
+                return;
+            }
+
+            TileAuthoringEntry snapSource = FindSnapSource(entry);
+            if (entry.UseSnapOffset && snapSource != null)
+            {
+                ApplyAdjacentSnap(entry, snapSource, false);
+                return;
+            }
+
+            Quaternion rotation = Quaternion.Euler(entry.ResolvedEulerAngles);
+            Vector3 colliderCenter = entry.ResolvedPosition;
+            float halfHeight = TileSnapMath.GetOrientedExtent(tileSize, rotation, Vector3.up);
+            float supportY = colliderCenter.y - halfHeight;
+            entry.LocalPosition += Vector3.up * -supportY;
         }
 
         private void SetDirectionalFraction(TileAuthoringEntry entry, int directionU, int directionV)
@@ -261,6 +294,11 @@ namespace MahjongOut3D.Editor
 
         private void ApplyAdjacentSnap(TileAuthoringEntry entry, TileAuthoringEntry source)
         {
+            ApplyAdjacentSnap(entry, source, true);
+        }
+
+        private void ApplyAdjacentSnap(TileAuthoringEntry entry, TileAuthoringEntry source, bool inheritSourcePose)
+        {
             if (source == null)
             {
                 return;
@@ -268,26 +306,29 @@ namespace MahjongOut3D.Editor
 
             Undo.RecordObject(layout, "Apply Adjacent Tile Snap");
             Vector3 sourceRotation = source.ResolvedEulerAngles;
-            // The six buttons describe the visible board directions, not the prefab's
-            // local axes. The new tile keeps the source pose; only its position changes.
-            Vector3 targetRotation = sourceRotation;
-            entry.Pose.Face = source.Pose.Face;
-            entry.Pose.RollQuarterTurns = source.Pose.RollQuarterTurns;
-            entry.FineRotationOffset = source.FineRotationOffset;
+            // New adjacent tiles inherit the source pose. When an existing tile's face
+            // is edited, preserve its new pose and only recompute its snapped position.
+            if (inheritSourcePose)
+            {
+                entry.Pose.Face = source.Pose.Face;
+                entry.Pose.RollQuarterTurns = source.Pose.RollQuarterTurns;
+                entry.FineRotationOffset = source.FineRotationOffset;
+            }
+            Vector3 targetRotation = entry.ResolvedEulerAngles;
             Quaternion sourceQuaternion = Quaternion.Euler(sourceRotation);
             Quaternion targetQuaternion = Quaternion.Euler(targetRotation);
             Vector3 direction = TileSnapMath.GetAdjacentWorldDirection(
                 source.Pose.Face,
                 source.Pose.RollQuarterTurns,
-                entry.SnapDirection);
-            TileSnapMath.GetAdjacentTangentialBasis(
                 entry.SnapDirection,
+                entry.AdjacentDirectionSpace);
+            Quaternion semanticRotation = TileSnapMath.GetRotation(source.Pose.Face, source.Pose.RollQuarterTurns);
+            TileSnapMath.GetAdjacentTangentialBasis(
+                semanticRotation,
+                entry.SnapDirection,
+                entry.AdjacentDirectionSpace,
                 out Vector3 tangentU,
                 out Vector3 tangentV);
-            // Keep the corner frame board-relative. The source's 270-degree tile roll
-            // must not rotate Left/Right into Up/Down or collapse a diagonal to one axis.
-            tangentU = tangentU.normalized;
-            tangentV = tangentV.normalized;
             Quaternion sizeSourceRotation = entry.SnapOffsetSizeSource == TileSnapOffsetSizeSource.SourceTile
                 ? sourceQuaternion
                 : targetQuaternion;
@@ -361,8 +402,8 @@ namespace MahjongOut3D.Editor
             }
 
             Event current = Event.current;
-            DrawEntries();
             RefreshPreviewTiles();
+            DrawEntries();
             if (placing && current.type == EventType.MouseDown && current.button == 0 && !current.alt)
             {
                 Ray ray = HandleUtility.GUIPointToWorldRay(current.mousePosition);
@@ -432,7 +473,7 @@ namespace MahjongOut3D.Editor
         {
             EnsurePreviewRoot();
             int desiredCount = layout != null ? layout.Entries.Count : 0;
-            while (previewRoot.transform.childCount > desiredCount)
+            while (previewRoot.transform.childCount > desiredCount * 2)
             {
                 DestroyImmediate(previewRoot.transform.GetChild(previewRoot.transform.childCount - 1).gameObject);
             }
@@ -473,6 +514,51 @@ namespace MahjongOut3D.Editor
                 Vector3 previewRootPosition = entry.ResolvedPosition - (previewRotation * placementOffset);
                 preview.transform.SetLocalPositionAndRotation(previewRootPosition, previewRotation);
                 preview.gameObject.SetActive(true);
+                CreateOrUpdateDirectionMarkers(index, entry, previewRootPosition, previewRotation);
+            }
+        }
+
+        private void CreateOrUpdateDirectionMarkers(int index, TileAuthoringEntry entry, Vector3 rootPosition, Quaternion rotation)
+        {
+            GameObject markerRoot = previewRoot.transform.Find($"DirectionMarkers_{index}")?.gameObject;
+            if (markerRoot == null)
+            {
+                markerRoot = new GameObject($"DirectionMarkers_{index}");
+                markerRoot.hideFlags = HideFlags.HideAndDontSave;
+                markerRoot.transform.SetParent(previewRoot.transform, false);
+            }
+
+            markerRoot.transform.SetLocalPositionAndRotation(rootPosition, rotation);
+            Vector3[] directions =
+            {
+                Vector3.left,
+                Vector3.right,
+                Vector3.down,
+                Vector3.up,
+                Vector3.back,
+                Vector3.forward,
+            };
+            string[] names = { "Left", "Right", "Down", "Up", "Back", "Forward" };
+            Color[] colors = { Color.red, Color.green, Color.yellow, Color.cyan, Color.magenta, Color.blue };
+            float markerDistance = Mathf.Max(tileSize.x, Mathf.Max(tileSize.y, tileSize.z)) * 0.8f;
+            for (int directionIndex = 0; directionIndex < directions.Length; directionIndex++)
+            {
+                Transform markerTransform = markerRoot.transform.Find(names[directionIndex]);
+                if (markerTransform == null)
+                {
+                    GameObject marker = new GameObject(names[directionIndex]);
+                    marker.hideFlags = HideFlags.HideAndDontSave;
+                    marker.transform.SetParent(markerRoot.transform, false);
+                    markerTransform = marker.transform;
+                }
+
+                markerTransform.localPosition = directions[directionIndex] * markerDistance;
+                markerTransform.localRotation = Quaternion.identity;
+                Handles.color = colors[directionIndex];
+                float handleSize = HandleUtility.GetHandleSize(markerTransform.position) * 0.08f;
+                Handles.DrawLine(markerRoot.transform.position, markerTransform.position);
+                Handles.SphereHandleCap(0, markerTransform.position, Quaternion.identity, handleSize, EventType.Repaint);
+                Handles.Label(markerTransform.position, names[directionIndex]);
             }
         }
 

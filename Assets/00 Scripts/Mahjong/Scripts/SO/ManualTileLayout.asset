@@ -24,6 +24,38 @@ MonoBehaviour:
   defaultPosture: 1
   defaultStandingFace: 4
   defaultStandingRoll: 3
-  snapDistance: 0.18
-  tileGap: 0.03
-  entries: []
+  snapDistance: 0.15
+  tileGap: 0.01
+  entries:
+  - stableId: 2df9f8e7b954497890a15b827dadfa13
+    matchId: 11
+    localPosition: {x: 0, y: -0, z: 0}
+    pose:
+      face: 4
+      rollQuarterTurns: 3
+    useSnapOffset: 0
+    snapSourceStableId: ''
+    snapDirection: 1
+    snapOffsetU: 0
+    snapOffsetV: 0
+    snapOffsetSizeSource: 0
+    adjacentOffsetMode: 0
+    finePositionOffset: {x: 0, y: 0, z: 0}
+    fineRotationOffset: {x: 0, y: 0, z: 0}
+    surfaceShellIndex: 0
+  - stableId: ''
+    matchId: 12
+    localPosition: {x: 0.40413168, y: 0, z: 0.00080390496}
+    pose:
+      face: 1
+      rollQuarterTurns: 3
+    useSnapOffset: 1
+    snapSourceStableId: 2df9f8e7b954497890a15b827dadfa13
+    snapDirection: 1
+    snapOffsetU: 0
+    snapOffsetV: 0
+    snapOffsetSizeSource: 0
+    adjacentOffsetMode: 0
+    finePositionOffset: {x: 0, y: 0, z: 0}
+    fineRotationOffset: {x: 0, y: 0, z: 0}
+    surfaceShellIndex: 0

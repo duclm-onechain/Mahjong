@@ -36,6 +36,15 @@ namespace MahjongOut3D.LevelSystem
     }
 
     /// <summary>
+    /// Selects whether adjacent direction buttons follow the board or the tile pose.
+    /// </summary>
+    public enum TileAdjacentDirectionSpace
+    {
+        Board = 0,
+        TilePose = 1,
+    }
+
+    /// <summary>
     /// Selects the default pose used when creating a new tile in the authoring window.
     /// </summary>
     public enum TileDefaultPlacementPose
@@ -90,6 +99,7 @@ namespace MahjongOut3D.LevelSystem
         [SerializeField] private bool useSnapOffset;
         [SerializeField] private string snapSourceStableId;
         [SerializeField] private VoxelGridDirection snapDirection = VoxelGridDirection.Right;
+        [SerializeField] private TileAdjacentDirectionSpace adjacentDirectionSpace = TileAdjacentDirectionSpace.Board;
         [SerializeField, Range(-4, 4)] private int snapOffsetU;
         [SerializeField, Range(-4, 4)] private int snapOffsetV;
         [SerializeField] private TileSnapOffsetSizeSource snapOffsetSizeSource = TileSnapOffsetSizeSource.SourceTile;
@@ -142,6 +152,12 @@ namespace MahjongOut3D.LevelSystem
         {
             get => snapDirection;
             set => snapDirection = value;
+        }
+
+        public TileAdjacentDirectionSpace AdjacentDirectionSpace
+        {
+            get => adjacentDirectionSpace;
+            set => adjacentDirectionSpace = value;
         }
 
         public int SnapOffsetU

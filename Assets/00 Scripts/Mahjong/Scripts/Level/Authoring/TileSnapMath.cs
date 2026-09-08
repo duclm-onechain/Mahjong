@@ -112,11 +112,67 @@ namespace MahjongOut3D.LevelSystem
         public static Vector3 GetAdjacentWorldDirection(
             VoxelGridDirection surfaceFace,
             int rollQuarterTurns,
+            VoxelGridDirection adjacentSide,
+            TileAdjacentDirectionSpace directionSpace)
+        {
+            GetSemanticAdjacentFrame(surfaceFace, rollQuarterTurns, directionSpace, out Vector3 right, out Vector3 up, out Vector3 forward);
+            return GetAdjacentWorldDirection(right, up, forward, adjacentSide);
+        }
+
+        private static Vector3 GetAdjacentWorldDirection(
+            Vector3 right,
+            Vector3 up,
+            Vector3 forward,
             VoxelGridDirection adjacentSide)
         {
-            // Authoring uses the board/camera convention where Back is +Z and
-            // Forward is -Z. Keep these controls independent from the tile's roll.
             switch (adjacentSide)
+            {
+                case VoxelGridDirection.Left:
+                    return -right;
+                case VoxelGridDirection.Right:
+                    return right;
+                case VoxelGridDirection.Down:
+                    return -up;
+                case VoxelGridDirection.Up:
+                    return up;
+                case VoxelGridDirection.Back:
+                    return -forward;
+                case VoxelGridDirection.Forward:
+                default:
+                    return forward;
+            }
+        }
+
+        public static void GetTilePoseAxes(Quaternion sourcePoseRotation, out Vector3 right, out Vector3 up, out Vector3 forward)
+        {
+            right = (sourcePoseRotation * Vector3.right).normalized;
+            up = (sourcePoseRotation * Vector3.up).normalized;
+            forward = (sourcePoseRotation * Vector3.forward).normalized;
+        }
+
+        private static void GetSemanticAdjacentFrame(
+            VoxelGridDirection surfaceFace,
+            int rollQuarterTurns,
+            TileAdjacentDirectionSpace directionSpace,
+            out Vector3 right,
+            out Vector3 up,
+            out Vector3 forward)
+        {
+            if (directionSpace == TileAdjacentDirectionSpace.Board)
+            {
+                right = Vector3.right;
+                up = Vector3.up;
+                forward = Vector3.back;
+                return;
+            }
+
+            GetSurfaceBasis(surfaceFace, rollQuarterTurns, out Vector3 normal, out right, out up);
+            forward = -normal;
+        }
+
+        public static Vector3 GetBoardDirection(VoxelGridDirection direction)
+        {
+            switch (direction)
             {
                 case VoxelGridDirection.Left:
                     return Vector3.left;
@@ -135,32 +191,35 @@ namespace MahjongOut3D.LevelSystem
         }
 
         public static void GetAdjacentTangentialBasis(
+            Quaternion sourcePoseRotation,
             VoxelGridDirection adjacentSide,
+            TileAdjacentDirectionSpace directionSpace,
             out Vector3 tangentU,
             out Vector3 tangentV)
         {
+            if (directionSpace == TileAdjacentDirectionSpace.Board)
+            {
+                sourcePoseRotation = Quaternion.identity;
+            }
+            GetTilePoseAxes(sourcePoseRotation, out Vector3 right, out Vector3 up, out Vector3 forward);
+            forward = -forward;
             switch (adjacentSide)
             {
                 case VoxelGridDirection.Left:
                 case VoxelGridDirection.Right:
-                    tangentU = Vector3.right;
-                    tangentV = Vector3.up;
+                    tangentU = forward;
+                    tangentV = up;
                     break;
-                case VoxelGridDirection.Up:
                 case VoxelGridDirection.Down:
-                    tangentU = Vector3.right;
-                    tangentV = Vector3.forward;
+                case VoxelGridDirection.Up:
+                    tangentU = right;
+                    tangentV = forward;
                     break;
                 case VoxelGridDirection.Back:
-                    tangentU = Vector3.right;
-                    tangentV = Vector3.up;
-                    break;
                 case VoxelGridDirection.Forward:
                 default:
-                    // Positive U is always screen-right; negative U is screen-left.
-                    // Forward is -Z, so do not flip U when changing depth direction.
-                    tangentU = Vector3.right;
-                    tangentV = Vector3.up;
+                    tangentU = right;
+                    tangentV = up;
                     break;
             }
         }
