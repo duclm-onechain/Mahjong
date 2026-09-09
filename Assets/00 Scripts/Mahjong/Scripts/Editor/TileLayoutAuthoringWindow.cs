@@ -14,7 +14,6 @@ namespace MahjongOut3D.Editor
         private TileLayoutAuthoring layout;
         private MahjongTile tilePrefab;
         private int selectedEntry = -1;
-        private int nextMatchId;
         private bool placing;
         private Vector3 tileSize = Vector3.one;
         private GameObject previewRoot;
@@ -165,7 +164,12 @@ namespace MahjongOut3D.Editor
                 ShowValidation();
             }
 
-            if (GUILayout.Button("Bake To LevelDefinition"))
+            if (GUILayout.Button("Bake To Shape"))
+            {
+                BakeShape();
+            }
+
+            if (GUILayout.Button("Bake Complete Level (Legacy)"))
             {
                 BakeLayout();
             }
@@ -285,7 +289,7 @@ namespace MahjongOut3D.Editor
 
             Undo.RecordObject(layout, "Create Adjacent Mahjong Tile");
             TileAuthoringEntry created = TileAuthoringEntry.Create(
-                nextMatchId++,
+                source.MatchId,
                 source.ResolvedPosition,
                 source.Pose.Face,
                 source.Pose.RollQuarterTurns);
@@ -505,7 +509,7 @@ namespace MahjongOut3D.Editor
                     Undo.RecordObject(layout, "Place Mahjong Tile");
                     TileSurfacePose defaultTilePose = layout.CreateDefaultPose();
                     TileAuthoringEntry entry = TileAuthoringEntry.Create(
-                        nextMatchId++,
+                        GetNextMatchId(),
                         position,
                         defaultTilePose.Face,
                         defaultTilePose.RollQuarterTurns);
@@ -586,7 +590,7 @@ namespace MahjongOut3D.Editor
                 Vector3 previewRootPosition = entry.ResolvedPosition - (previewRotation * placementOffset);
                 preview.transform.SetLocalPositionAndRotation(previewRootPosition, previewRotation);
                 preview.gameObject.SetActive(true);
-               // DrawDirectionMarkers(preview);
+                DrawDirectionMarkers(preview);
             }
         }
 
@@ -705,6 +709,21 @@ namespace MahjongOut3D.Editor
             return nearest;
         }
 
+        private int GetNextMatchId()
+        {
+            int maxMatchId = 0;
+            for (int index = 0; index < layout.Entries.Count; index++)
+            {
+                TileAuthoringEntry entry = layout.Entries[index];
+                if (entry != null)
+                {
+                    maxMatchId = Mathf.Max(maxMatchId, entry.MatchId);
+                }
+            }
+
+            return maxMatchId + 1;
+        }
+
         private void DuplicateSelected()
         {
             if (!TryGetSelected(out TileAuthoringEntry source))
@@ -762,6 +781,24 @@ namespace MahjongOut3D.Editor
 
             string text = messages.Count == 0 ? "Layout is valid." : $"{messages.Count} message(s), {errors} error(s).\n\n{messages[0].Message}";
             EditorUtility.DisplayDialog("Manual Layout Validation", text, "OK");
+        }
+
+        private void BakeShape()
+        {
+            try
+            {
+                ManualTileShape shape = TileShapeBaker.Bake(layout);
+                Selection.activeObject = shape;
+                EditorUtility.DisplayDialog(
+                    "Manual Tile Shape",
+                    $"Shape baked successfully.\n\nTiles: {shape.TileCount}\nShells: {shape.LayerCount}",
+                    "OK");
+            }
+            catch (System.Exception exception)
+            {
+                Debug.LogException(exception, layout);
+                EditorUtility.DisplayDialog("Shape Bake Failed", exception.Message, "OK");
+            }
         }
 
         private void BakeLayout()

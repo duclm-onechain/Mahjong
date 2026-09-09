@@ -1,0 +1,78 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a077b516cafaf9edc8d03fe4a4c390da, type: 3}
+  m_Name: Generated_Easy_020
+  m_EditorClassIdentifier: Assembly-CSharp::MahjongOut3D.LevelSystem.LevelDefinition
+  <LevelName>k__BackingField: Generated_Easy_020
+  <GridSize>k__BackingField:
+    width: 8
+    height: 1
+    depth: 1
+  <LayoutOverride>k__BackingField: {fileID: 11400000, guid: 67155f736c2a4e0d8cd1e601cd86583f, type: 2}
+  <Shape>k__BackingField: 8
+  <UseSurfaceTilePlacement>k__BackingField: 1
+  <BlockCount>k__BackingField: 1
+  <BlockSpacingCells>k__BackingField: 1
+  <LayerCount>k__BackingField: 1
+  <Difficulty>k__BackingField: 0
+  <FaceDownTileRatio>k__BackingField: 0
+  <ComboTileRatio>k__BackingField: 0
+  <FillCategoryNames>k__BackingField: []
+  <Tiles>k__BackingField:
+  - matchId: 1
+    gridCoordinate: {x: 4, y: 0, z: 0}
+    useCustomLocalPosition: 1
+    localPosition: {x: 0.27522525, y: -1.0686398, z: -0.746205}
+    localEulerAngles: {x: -0, y: 270, z: 90}
+    surfaceShellIndex: 0
+  - matchId: 1
+    gridCoordinate: {x: 2, y: 0, z: 0}
+    useCustomLocalPosition: 1
+    localPosition: {x: -0.000000085325226, y: -0.7157598, z: -0.5}
+    localEulerAngles: {x: -0, y: 270, z: 90}
+    surfaceShellIndex: 0
+  - matchId: 3
+    gridCoordinate: {x: 3, y: 0, z: 0}
+    useCustomLocalPosition: 1
+    localPosition: {x: -0.2752255, y: -1.0686398, z: -0.74620485}
+    localEulerAngles: {x: -0, y: 270, z: 90}
+    surfaceShellIndex: 0
+  - matchId: 3
+    gridCoordinate: {x: 0, y: 0, z: 0}
+    useCustomLocalPosition: 1
+    localPosition: {x: 0, y: 0, z: -0.5}
+    localEulerAngles: {x: -0, y: 270, z: 90}
+    surfaceShellIndex: 0
+  - matchId: 2
+    gridCoordinate: {x: 6, y: 0, z: 0}
+    useCustomLocalPosition: 1
+    localPosition: {x: -0.845676, y: 0.000000029802322, z: -0.62810236}
+    localEulerAngles: {x: -0, y: 270, z: 90}
+    surfaceShellIndex: 0
+  - matchId: 2
+    gridCoordinate: {x: 5, y: 0, z: 0}
+    useCustomLocalPosition: 1
+    localPosition: {x: -1.1209013, y: 0.3528799, z: -0.38189742}
+    localEulerAngles: {x: -0, y: 270, z: 90}
+    surfaceShellIndex: 0
+  - matchId: 0
+    gridCoordinate: {x: 7, y: 0, z: 0}
+    useCustomLocalPosition: 1
+    localPosition: {x: -1.4061267, y: 0.000000029802322, z: -0.6281023}
+    localEulerAngles: {x: -0, y: 270, z: 90}
+    surfaceShellIndex: 0
+  - matchId: 0
+    gridCoordinate: {x: 1, y: 0, z: 0}
+    useCustomLocalPosition: 1
+    localPosition: {x: -0.5604507, y: 0.3528799, z: -0.38189748}
+    localEulerAngles: {x: -0, y: 270, z: 90}
+    surfaceShellIndex: 0

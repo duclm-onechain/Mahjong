@@ -31,6 +31,7 @@ namespace MahjongOut3D.LevelSystem
         [SerializeField] private LevelCatalog targetCatalog;
         [SerializeField] private VoxelGridLayoutSettings layoutOverride;
         [SerializeField] private MahjongTile tilePrefab;
+        [SerializeField] private ManualTileShape authoredShape;
         [Header("Surface Tile Spacing")]
         [SerializeField, Min(0f)] private float surfaceTileGap = 0.03f;
         [SerializeField, Min(0f)] private float leftRightSurfaceGapOffset = 0f;
@@ -54,6 +55,7 @@ namespace MahjongOut3D.LevelSystem
         }
 
         public GenerationWriteMode WriteMode => generationWriteMode;
+        public ManualTileShape AuthoredShape => authoredShape;
 
         /// <summary>
         /// Describes how many levels to generate for one difficulty tier and the shell-layer counts that tier may use.
@@ -777,15 +779,21 @@ namespace MahjongOut3D.LevelSystem
 
                 for (int attempt = 0; attempt < MaxSolvableGenerationAttemptsPerLevel; attempt++)
                 {
-                    candidate = CreateShapeCandidate(settings, random);
+                    candidate = authoredShape != null
+                        ? CreateAuthoredShapeCandidate()
+                        : CreateShapeCandidate(settings, random);
                     if (candidate == null)
                     {
                         continue;
                     }
 
                     int tileCount = candidate.TargetTileCount;
-                    List<TilePlacementData> occupiedCoordinates = BuildOccupiedCoordinates(candidate.Shape, candidate.Shells, tileCount, random);
-                    logicalGridSize = BuildLogicalGridSize(occupiedCoordinates.Count);
+                    List<TilePlacementData> occupiedCoordinates = authoredShape != null
+                        ? FlattenAuthoredShapeShells(candidate.Shells)
+                        : BuildOccupiedCoordinates(candidate.Shape, candidate.Shells, tileCount, random);
+                    logicalGridSize = authoredShape != null
+                        ? candidate.GridSize
+                        : BuildLogicalGridSize(occupiedCoordinates.Count);
 
                     if (TryBuildTileDefinitions(candidate.Shape, occupiedCoordinates, candidate.GridSize, logicalGridSize, settings, random, out tileDefinitions))
                     {
@@ -804,7 +812,9 @@ namespace MahjongOut3D.LevelSystem
                 {
                     LevelName = $"{levelNamePrefix}_{settings.Label}_{sequence:000}",
                     GridSize = ResolveSerializedGridSize(tileDefinitions, logicalGridSize),
-                    LayoutOverride = layoutOverride,
+                    LayoutOverride = authoredShape != null && authoredShape.LayoutOverride != null
+                        ? authoredShape.LayoutOverride
+                        : layoutOverride,
                     Shape = candidate.Shape,
                     Difficulty = settings.Difficulty,
                     UseSurfaceTilePlacement = ShouldUseSurfaceTilePlacement(candidate.Shape, layerCount),
@@ -1642,6 +1652,75 @@ namespace MahjongOut3D.LevelSystem
             }
 
             return bestCandidate;
+        }
+
+        private ShapeCandidate CreateAuthoredShapeCandidate()
+        {
+            if (authoredShape == null)
+            {
+                throw new InvalidOperationException("Authored shape is missing.");
+            }
+
+            if (!authoredShape.Validate(out string error))
+            {
+                throw new InvalidOperationException(error);
+            }
+
+            List<List<TilePlacementData>> shells = new List<List<TilePlacementData>>();
+            for (int index = 0; index < authoredShape.LayerCount; index++)
+            {
+                shells.Add(new List<TilePlacementData>());
+            }
+
+            for (int index = 0; index < authoredShape.Cells.Count; index++)
+            {
+                ManualTileShape.Cell cell = authoredShape.Cells[index];
+                while (shells.Count <= cell.SurfaceShellIndex)
+                {
+                    shells.Add(new List<TilePlacementData>());
+                }
+
+                shells[cell.SurfaceShellIndex].Add(new TilePlacementData
+                {
+                    Coordinate = cell.GridCoordinate,
+                    FacingDirection = VoxelGridDirection.Up,
+                    ShellIndex = cell.SurfaceShellIndex,
+                    SurfaceSlotIndex = -1,
+                    CustomLocalPosition = cell.LocalPosition,
+                    CustomLocalEulerAngles = cell.LocalEulerAngles,
+                    UseCustomLocalPosition = true,
+                    UseCustomLocalEulerAngles = true,
+                    ApplyShellCompaction = false,
+                });
+            }
+
+            return new ShapeCandidate
+            {
+                GridSize = authoredShape.GridSize,
+                Shape = LevelShapeType.Custom,
+                TargetLayerCount = authoredShape.LayerCount,
+                TargetTileCount = authoredShape.TileCount,
+                Shells = shells,
+            };
+        }
+
+        private static List<TilePlacementData> FlattenAuthoredShapeShells(List<List<TilePlacementData>> shells)
+        {
+            List<TilePlacementData> result = new List<TilePlacementData>();
+            if (shells == null)
+            {
+                return result;
+            }
+
+            for (int shellIndex = 0; shellIndex < shells.Count; shellIndex++)
+            {
+                if (shells[shellIndex] != null)
+                {
+                    result.AddRange(shells[shellIndex]);
+                }
+            }
+
+            return result;
         }
 
         /// <summary>
@@ -3078,7 +3157,9 @@ namespace MahjongOut3D.LevelSystem
             return new LevelTileDefinition
             {
                 MatchId = matchId,
-                GridCoordinate = ResolveGeneratedGridCoordinate(shape, placement, tileIndex, logicalGridSize),
+                GridCoordinate = authoredShape != null
+                    ? placement.Coordinate
+                    : ResolveGeneratedGridCoordinate(shape, placement, tileIndex, logicalGridSize),
                 SurfaceShellIndex = placement.ShellIndex,
                 UseCustomLocalPosition = true,
                 LocalPosition = GetCompactedSurfaceTileLocalPosition(placement, shapeGridSize),

@@ -19,10 +19,15 @@ namespace MahjongOut3D.Editor
         {
             DrawDefaultInspector();
 
+            EditorGUILayout.HelpBox("Assign Authored Shape to preserve a fixed manually-designed shape. Leave it empty to use the built-in procedural shapes.", MessageType.None);
             EditorGUILayout.Space();
             EditorGUILayout.HelpBox("Generator now writes surface-wrapped levels. Each exposed face is split into tile slots, and outer shells are generated before inner shells so the block peels from outside to inside.", MessageType.Info);
             EditorGUILayout.HelpBox("Easy keeps matched pairs close together on the same face when possible. Normal, Hard, and SuperHard progressively spread pair members across different faces and shell layers.", MessageType.Info);
             EditorGUILayout.HelpBox("SuperHard levels are written with runtime difficulty Expert to stay compatible with the existing enum.", MessageType.Info);
+            if (((ProceduralLevelBatchGenerator)target).AuthoredShape != null)
+            {
+                EditorGUILayout.HelpBox("An authored shape is assigned. Procedural generation will preserve its fixed tile count and shell layout, then generate match pairs according to each difficulty tier.", MessageType.Info);
+            }
             EditorGUILayout.HelpBox("Write Mode: New Gen sẽ giữ level cũ và tạo level mới với số tiếp theo. Overwrite Matching sẽ chỉ cập nhật level trùng tên generate, không xoá sạch catalog cũ.", MessageType.Warning);
             EditorGUILayout.HelpBox("Google Sheet link cần public/publish để Unity tải được CSV. Hỗ trợ cả link share sheet thường và link pub/output=csv.", MessageType.Info);
 
