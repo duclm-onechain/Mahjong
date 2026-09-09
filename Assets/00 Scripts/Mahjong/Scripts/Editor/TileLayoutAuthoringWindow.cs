@@ -590,7 +590,7 @@ namespace MahjongOut3D.Editor
                 Vector3 previewRootPosition = entry.ResolvedPosition - (previewRotation * placementOffset);
                 preview.transform.SetLocalPositionAndRotation(previewRootPosition, previewRotation);
                 preview.gameObject.SetActive(true);
-                DrawDirectionMarkers(preview);
+                //DrawDirectionMarkers(preview);
             }
         }
 

@@ -361,6 +361,7 @@ namespace MahjongOut3D.LevelSystem
             }
 
             levelManager?.SetActiveLevelDefinition(null, false);
+            activeCubeSurfaceTilePlacement = false;
             ConfigureFillTexturePool(null);
             return Generate("ArrayGeneratedLevel", new VoxelGridSize(width, height, depth), null, tiles, 1, 0f, 0f);
         }
@@ -412,6 +413,7 @@ namespace MahjongOut3D.LevelSystem
             }
 
             levelManager?.SetActiveLevelDefinition(null, false);
+            activeCubeSurfaceTilePlacement = false;
             ConfigureFillTexturePool(null);
             return Generate("MaskGeneratedLevel", new VoxelGridSize(width, height, depth), null, tiles, 1, 0f, 0f);
         }
@@ -605,21 +607,43 @@ namespace MahjongOut3D.LevelSystem
 
         private void FinalizeGeneration(string levelName, VoxelGridData grid)
         {
-            tileManager?.SetVisibilityRefreshSuspended(false);
-            tileManager.RefreshTileExposure();
-            RefreshSpawnedTilePresentation();
+            if (Application.isPlaying)
+            {
+                activeGenerationRoutine = StartCoroutine(FinalizeGenerationRoutine(levelName, grid, false));
+                return;
+            }
+
             FocusCameraOnGrid(grid);
+            RefreshSpawnedTilePresentation();
+            Physics.SyncTransforms();
+            if (tileManager != null)
+            {
+                tileManager.SetVisibilityRefreshSuspended(false);
+                tileManager.RefreshTileExposure();
+            }
+
             context.EventBus.Publish(new LevelGeneratedEvent(levelName, spawnedTiles.Count, grid));
         }
 
-        private IEnumerator FinalizeGenerationRoutine(string levelName, VoxelGridData grid)
+        private IEnumerator FinalizeGenerationRoutine(string levelName, VoxelGridData grid, bool playAssemble = true)
         {
             FocusCameraOnGrid(grid);
             yield return null;
-            yield return PlayAssembleSequence(grid);
-            tileManager?.SetVisibilityRefreshSuspended(false);
-            tileManager.RefreshTileExposure();
+            if (playAssemble)
+            {
+                yield return PlayAssembleSequence(grid);
+            }
+
             RefreshSpawnedTilePresentation();
+            Physics.SyncTransforms();
+            yield return new WaitForFixedUpdate();
+            Physics.SyncTransforms();
+            if (tileManager != null)
+            {
+                tileManager.SetVisibilityRefreshSuspended(false);
+                tileManager.RefreshTileExposure();
+            }
+
             context.EventBus.Publish(new LevelGeneratedEvent(levelName, spawnedTiles.Count, grid));
             activeGenerationRoutine = null;
         }
@@ -1638,7 +1662,7 @@ namespace MahjongOut3D.LevelSystem
         /// </summary>
         private Vector3 ResolveTileLocalScale(LevelTileDefinition definition)
         {
-            if (definition == null)
+            if (!activeCubeSurfaceTilePlacement || definition == null)
             {
                 return Vector3.one;
             }

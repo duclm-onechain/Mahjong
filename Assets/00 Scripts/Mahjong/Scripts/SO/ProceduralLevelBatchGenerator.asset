@@ -15,7 +15,7 @@ MonoBehaviour:
   targetCatalog: {fileID: 11400000, guid: f8b473ff57de4323baabdd6333f902f1, type: 2}
   layoutOverride: {fileID: 11400000, guid: 67155f736c2a4e0d8cd1e601cd86583f, type: 2}
   tilePrefab: {fileID: -5892857342694290962, guid: 1e089effe00ac8f89ab118777d5f166b, type: 3}
-  authoredShape: {fileID: 11400000, guid: c3ae3b0db20a833de895205aa362ce93, type: 2}
+  authoredShape: {fileID: 11400000, guid: 4fb4144e783027754bf0d8335274ac9c, type: 2}
   surfaceTileGap: 0
   leftRightSurfaceGapOffset: 0
   upDownSurfaceGapOffset: 0
