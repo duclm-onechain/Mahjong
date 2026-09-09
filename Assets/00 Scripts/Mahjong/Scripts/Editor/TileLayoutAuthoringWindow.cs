@@ -14,9 +14,11 @@ namespace MahjongOut3D.Editor
         private TileLayoutAuthoring layout;
         private MahjongTile tilePrefab;
         private int selectedEntry = -1;
+        private readonly HashSet<int> selectedEntries = new HashSet<int>();
         private bool placing;
         private Vector3 tileSize = Vector3.one;
         private GameObject previewRoot;
+        private readonly Dictionary<MahjongTile, int> previewEntryIndices = new Dictionary<MahjongTile, int>();
 
         [MenuItem("Tools/Mahjong Out 3D/Levels/Manual Tile Layout Editor")]
         public static void Open()
@@ -100,6 +102,7 @@ namespace MahjongOut3D.Editor
                 }
             }
             EditorGUILayout.LabelField("Tiles", layout.Entries.Count.ToString());
+            EditorGUILayout.LabelField("Selected Tiles", selectedEntries.Count.ToString());
             EditorGUILayout.LabelField("Snap", layout.SnapMode.ToString());
             EditorGUI.BeginChangeCheck();
             TileLayoutSnapMode snapMode = (TileLayoutSnapMode)EditorGUILayout.EnumPopup("Snap Step", layout.SnapMode);
@@ -132,18 +135,35 @@ namespace MahjongOut3D.Editor
             using (new EditorGUILayout.HorizontalScope())
             {
                 placing = GUILayout.Toggle(placing, placing ? "Placing..." : "Place Tile", "Button");
-                if (GUILayout.Button("Duplicate Selected"))
+                using (new EditorGUI.DisabledScope(selectedEntries.Count == 0))
                 {
-                    DuplicateSelected();
-                }
-                if (GUILayout.Button("Delete Selected"))
-                {
-                    DeleteSelected();
+                    if (GUILayout.Button("Duplicate Selected"))
+                    {
+                        DuplicateSelected();
+                    }
+                    if (GUILayout.Button("Delete Selected"))
+                    {
+                        DeleteSelected();
+                    }
                 }
             }
 
             if (selectedEntry >= 0 && selectedEntry < layout.Entries.Count)
             {
+                EditorGUILayout.LabelField("Move Selected Tile", EditorStyles.boldLabel);
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    if (GUILayout.Button("Left")) MoveSelectedTile(VoxelGridDirection.Left);
+                    if (GUILayout.Button("Right")) MoveSelectedTile(VoxelGridDirection.Right);
+                    if (GUILayout.Button("Down")) MoveSelectedTile(VoxelGridDirection.Down);
+                    if (GUILayout.Button("Up")) MoveSelectedTile(VoxelGridDirection.Up);
+                }
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    if (GUILayout.Button("Back")) MoveSelectedTile(VoxelGridDirection.Back);
+                    if (GUILayout.Button("Forward")) MoveSelectedTile(VoxelGridDirection.Forward);
+                }
+
                 EditorGUILayout.LabelField("Create Adjacent Tile", EditorStyles.boldLabel);
                 using (new EditorGUILayout.HorizontalScope())
                 {
@@ -280,6 +300,40 @@ namespace MahjongOut3D.Editor
             ApplyAdjacentSnap(entry, source);
         }
 
+        private void MoveSelectedTile(VoxelGridDirection direction)
+        {
+            if (!TryGetSelected(out TileAuthoringEntry entry) || tilePrefab == null)
+            {
+                return;
+            }
+
+            Quaternion selectedRotation = Quaternion.Euler(entry.ResolvedEulerAngles);
+            Vector3 worldDirection = TileSnapMath.GetPrefabWorldDirection(
+                tilePrefab.DirectionFrame,
+                selectedRotation,
+                direction);
+            if (worldDirection.sqrMagnitude <= 0.0001f)
+            {
+                return;
+            }
+
+            int divisions = Mathf.Max(1, layout.SnapDivisions);
+            float moveDistance = TileSnapMath.GetOrientedExtent(tileSize, selectedRotation, worldDirection)
+                * 2f / divisions;
+            Vector3 worldDelta = worldDirection.normalized * moveDistance;
+            Vector3 localDelta = previewRoot != null
+                ? previewRoot.transform.InverseTransformVector(worldDelta)
+                : worldDelta;
+
+            Undo.RecordObject(layout, $"Move Tile {direction}");
+            entry.LocalPosition += localDelta;
+            entry.FinePositionOffset = Vector3.zero;
+            entry.UseSnapOffset = false;
+            entry.SetSnapSource(null);
+            EditorUtility.SetDirty(layout);
+            SceneView.RepaintAll();
+        }
+
         private void CreateAdjacentTile(VoxelGridDirection direction)
         {
             if (!TryGetSelected(out TileAuthoringEntry source))
@@ -299,7 +353,9 @@ namespace MahjongOut3D.Editor
             created.SetSnapOffset(source, direction, 0, 0);
             created.SnapOffsetSizeSource = TileSnapOffsetSizeSource.SourceTile;
             layout.AddEntry(created);
+            selectedEntries.Clear();
             selectedEntry = layout.Entries.Count - 1;
+            selectedEntries.Add(selectedEntry);
             ApplyAdjacentSnap(created, source);
             EditorUtility.SetDirty(layout);
             SceneView.RepaintAll();
@@ -479,7 +535,23 @@ namespace MahjongOut3D.Editor
 
             Event current = Event.current;
             RefreshPreviewTiles();
+            if (!placing && current.type == EventType.Layout)
+            {
+                HandleUtility.AddDefaultControl(GUIUtility.GetControlID(FocusType.Passive));
+            }
+
             DrawEntries();
+            if (!placing
+                && current.type == EventType.MouseDown
+                && current.button == 0
+                && !current.alt
+                && GUIUtility.hotControl == 0
+                && TrySelectPreviewTile(current.mousePosition))
+            {
+                current.Use();
+                return;
+            }
+
             if (placing && current.type == EventType.MouseDown && current.button == 0 && !current.alt)
             {
                 Ray ray = HandleUtility.GUIPointToWorldRay(current.mousePosition);
@@ -514,13 +586,65 @@ namespace MahjongOut3D.Editor
                         defaultTilePose.Face,
                         defaultTilePose.RollQuarterTurns);
                     layout.AddEntry(entry);
+                    selectedEntries.Clear();
                     selectedEntry = layout.Entries.Count - 1;
+                    selectedEntries.Add(selectedEntry);
                     EditorUtility.SetDirty(layout);
                     placing = false;
                     current.Use();
                     Repaint();
                 }
             }
+        }
+
+        private bool TrySelectPreviewTile(Vector2 mousePosition)
+        {
+            if (previewRoot == null)
+            {
+                return false;
+            }
+
+            Physics.SyncTransforms();
+            Ray ray = HandleUtility.GUIPointToWorldRay(mousePosition);
+            RaycastHit[] hits = Physics.RaycastAll(ray, Mathf.Infinity, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+            float closestDistance = float.MaxValue;
+            int closestIndex = -1;
+            for (int index = 0; index < hits.Length; index++)
+            {
+                MahjongTile preview = hits[index].collider != null
+                    ? hits[index].collider.GetComponentInParent<MahjongTile>()
+                    : null;
+                if (preview == null
+                    || !previewEntryIndices.TryGetValue(preview, out int entryIndex)
+                    || hits[index].distance >= closestDistance)
+                {
+                    continue;
+                }
+
+                closestDistance = hits[index].distance;
+                closestIndex = entryIndex;
+            }
+
+            if (closestIndex < 0 || closestIndex >= layout.Entries.Count)
+            {
+                return false;
+            }
+
+            bool additiveSelection = Event.current.control || Event.current.command;
+            if (!additiveSelection)
+            {
+                selectedEntries.Clear();
+            }
+
+            if (!selectedEntries.Add(closestIndex) && additiveSelection)
+            {
+                selectedEntries.Remove(closestIndex);
+            }
+
+            selectedEntry = selectedEntries.Count > 0 ? closestIndex : -1;
+            Repaint();
+            SceneView.RepaintAll();
+            return true;
         }
 
         private static Vector3 ResolveColliderSize(MahjongTile prefab)
@@ -548,6 +672,7 @@ namespace MahjongOut3D.Editor
         private void RefreshPreviewTiles()
         {
             EnsurePreviewRoot();
+            previewEntryIndices.Clear();
             int desiredCount = layout != null ? layout.Entries.Count : 0;
             while (previewRoot.transform.childCount > desiredCount)
             {
@@ -589,7 +714,9 @@ namespace MahjongOut3D.Editor
                 Vector3 placementOffset = tilePrefab.GetPlacementOffset();
                 Vector3 previewRootPosition = entry.ResolvedPosition - (previewRotation * placementOffset);
                 preview.transform.SetLocalPositionAndRotation(previewRootPosition, previewRotation);
+                preview.name = $"PreviewTile_{index}";
                 preview.gameObject.SetActive(true);
+                previewEntryIndices[preview] = index;
                 //DrawDirectionMarkers(preview);
             }
         }
@@ -635,12 +762,24 @@ namespace MahjongOut3D.Editor
                 }
 
                 Vector3 position = entry.ResolvedPosition;
-                Handles.color = index == selectedEntry ? Color.green : Color.cyan;
+                Handles.color = selectedEntries.Contains(index) ? Color.green : Color.cyan;
                 float size = HandleUtility.GetHandleSize(position) * 0.12f;
                 if (Handles.Button(position, Quaternion.identity, size, size, Handles.DotHandleCap))
                 {
-                    selectedEntry = index;
+                    bool additiveSelection = Event.current.control || Event.current.command;
+                    if (!additiveSelection)
+                    {
+                        selectedEntries.Clear();
+                    }
+
+                    if (!selectedEntries.Add(index) && additiveSelection)
+                    {
+                        selectedEntries.Remove(index);
+                    }
+
+                    selectedEntry = selectedEntries.Count > 0 ? index : -1;
                     Repaint();
+                    SceneView.RepaintAll();
                 }
 
                 Handles.Label(position + Vector3.up * size, $"{index}: match {entry.MatchId}");
@@ -649,22 +788,34 @@ namespace MahjongOut3D.Editor
                     continue;
                 }
 
-                EditorGUI.BeginChangeCheck();
-                Vector3 moved = Handles.PositionHandle(position, Quaternion.Euler(entry.ResolvedEulerAngles));
-                if (EditorGUI.EndChangeCheck())
+                if (Tools.current == Tool.Move)
                 {
-                    Undo.RecordObject(layout, "Move Mahjong Tile");
-                    entry.LocalPosition = moved - entry.FinePositionOffset;
-                    EditorUtility.SetDirty(layout);
+                    EditorGUI.BeginChangeCheck();
+                    Vector3 moved = Handles.PositionHandle(position, Quaternion.Euler(entry.ResolvedEulerAngles));
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        Undo.RecordObject(layout, "Move Mahjong Tile");
+                        Vector3 movedLocal = previewRoot != null
+                            ? previewRoot.transform.InverseTransformPoint(moved)
+                            : moved;
+                        entry.LocalPosition = movedLocal - entry.FinePositionOffset;
+                        EditorUtility.SetDirty(layout);
+                        Repaint();
+                        SceneView.RepaintAll();
+                    }
                 }
-
-                EditorGUI.BeginChangeCheck();
-                Quaternion rotated = Handles.RotationHandle(Quaternion.Euler(entry.ResolvedEulerAngles), position);
-                if (EditorGUI.EndChangeCheck())
+                else if (Tools.current == Tool.Rotate)
                 {
-                    Undo.RecordObject(layout, "Rotate Mahjong Tile");
-                    entry.FineRotationOffset = (Quaternion.Inverse(TileSnapMath.GetRotation(entry.Pose.Face, entry.Pose.RollQuarterTurns)) * rotated).eulerAngles;
-                    EditorUtility.SetDirty(layout);
+                    EditorGUI.BeginChangeCheck();
+                    Quaternion rotated = Handles.RotationHandle(Quaternion.Euler(entry.ResolvedEulerAngles), position);
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        Undo.RecordObject(layout, "Rotate Mahjong Tile");
+                        entry.FineRotationOffset = (Quaternion.Inverse(TileSnapMath.GetRotation(entry.Pose.Face, entry.Pose.RollQuarterTurns)) * rotated).eulerAngles;
+                        EditorUtility.SetDirty(layout);
+                        Repaint();
+                        SceneView.RepaintAll();
+                    }
                 }
             }
         }
@@ -726,39 +877,87 @@ namespace MahjongOut3D.Editor
 
         private void DuplicateSelected()
         {
-            if (!TryGetSelected(out TileAuthoringEntry source))
+            List<int> indices = GetSelectedIndices();
+            if (indices.Count == 0)
             {
                 return;
             }
 
-            Undo.RecordObject(layout, "Duplicate Mahjong Tile");
-            TileAuthoringEntry copy = TileAuthoringEntry.Create(
-                source.MatchId,
-                source.ResolvedPosition,
-                source.Pose.Face,
-                source.Pose.RollQuarterTurns);
-            copy.FinePositionOffset = source.FinePositionOffset;
-            copy.FineRotationOffset = source.FineRotationOffset;
-            copy.SnapOffsetSizeSource = source.SnapOffsetSizeSource;
-            copy.SetSnapOffset(source, VoxelGridDirection.Right, 0, 0);
-            layout.AddEntry(copy);
-            selectedEntry = layout.Entries.Count - 1;
+            Undo.RecordObject(layout, "Duplicate Mahjong Tiles");
+            selectedEntries.Clear();
+            for (int index = 0; index < indices.Count; index++)
+            {
+                TileAuthoringEntry source = layout.Entries[indices[index]];
+                if (source == null)
+                {
+                    continue;
+                }
+
+                TileAuthoringEntry copy = TileAuthoringEntry.Create(
+                    source.MatchId,
+                    source.ResolvedPosition,
+                    source.Pose.Face,
+                    source.Pose.RollQuarterTurns);
+                copy.FineRotationOffset = source.FineRotationOffset;
+                copy.AdjacentDirectionSpace = source.AdjacentDirectionSpace;
+                copy.AdjacentOffsetMode = source.AdjacentOffsetMode;
+                copy.SnapOffsetSizeSource = source.SnapOffsetSizeSource;
+                copy.SurfaceShellIndex = source.SurfaceShellIndex;
+                copy.UseSnapOffset = false;
+                copy.SetSnapSource(null);
+                layout.AddEntry(copy);
+                selectedEntries.Add(layout.Entries.Count - 1);
+            }
+
+            selectedEntry = selectedEntries.Count > 0 ? layout.Entries.Count - 1 : -1;
             EditorUtility.SetDirty(layout);
+            Repaint();
             SceneView.RepaintAll();
         }
 
         private void DeleteSelected()
         {
-            if (!TryGetSelected(out _))
+            List<int> indices = GetSelectedIndices();
+            if (indices.Count == 0)
             {
                 return;
             }
 
-            Undo.RecordObject(layout, "Delete Mahjong Tile");
-            layout.RemoveEntryAt(selectedEntry);
-            selectedEntry = Mathf.Min(selectedEntry, layout.Entries.Count - 1);
+            Undo.RecordObject(layout, "Delete Mahjong Tiles");
+            indices.Sort((left, right) => right.CompareTo(left));
+            for (int index = 0; index < indices.Count; index++)
+            {
+                layout.RemoveEntryAt(indices[index]);
+            }
+
+            selectedEntries.Clear();
+            selectedEntry = -1;
             EditorUtility.SetDirty(layout);
+            Repaint();
             SceneView.RepaintAll();
+        }
+
+        private List<int> GetSelectedIndices()
+        {
+            List<int> indices = new List<int>();
+            foreach (int index in selectedEntries)
+            {
+                if (index >= 0 && index < layout.Entries.Count && layout.Entries[index] != null)
+                {
+                    indices.Add(index);
+                }
+            }
+
+            if (indices.Count == 0
+                && selectedEntry >= 0
+                && selectedEntry < layout.Entries.Count
+                && layout.Entries[selectedEntry] != null)
+            {
+                indices.Add(selectedEntry);
+            }
+
+            indices.Sort();
+            return indices;
         }
 
         private bool TryGetSelected(out TileAuthoringEntry entry)
