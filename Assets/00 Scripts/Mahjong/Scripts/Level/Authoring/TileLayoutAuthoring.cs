@@ -42,6 +42,7 @@ namespace MahjongOut3D.LevelSystem
     {
         Board = 0,
         TilePose = 1,
+        TilePrefab = 2,
     }
 
     /// <summary>
@@ -99,7 +100,7 @@ namespace MahjongOut3D.LevelSystem
         [SerializeField] private bool useSnapOffset;
         [SerializeField] private string snapSourceStableId;
         [SerializeField] private VoxelGridDirection snapDirection = VoxelGridDirection.Right;
-        [SerializeField] private TileAdjacentDirectionSpace adjacentDirectionSpace = TileAdjacentDirectionSpace.Board;
+        [SerializeField] private TileAdjacentDirectionSpace adjacentDirectionSpace = TileAdjacentDirectionSpace.TilePrefab;
         [SerializeField, Range(-4, 4)] private int snapOffsetU;
         [SerializeField, Range(-4, 4)] private int snapOffsetV;
         [SerializeField] private TileSnapOffsetSizeSource snapOffsetSizeSource = TileSnapOffsetSizeSource.SourceTile;

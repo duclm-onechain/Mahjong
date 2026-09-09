@@ -1,3 +1,4 @@
+using MahjongOut3D.TileSystem;
 using UnityEngine;
 
 namespace MahjongOut3D.LevelSystem
@@ -117,6 +118,20 @@ namespace MahjongOut3D.LevelSystem
         {
             GetSemanticAdjacentFrame(surfaceFace, rollQuarterTurns, directionSpace, out Vector3 right, out Vector3 up, out Vector3 forward);
             return GetAdjacentWorldDirection(right, up, forward, adjacentSide);
+        }
+
+        public static Vector3 GetPrefabWorldDirection(
+            TileDirectionFrame directionFrame,
+            Quaternion sourceRotation,
+            VoxelGridDirection adjacentSide)
+        {
+            if (directionFrame != null
+                && directionFrame.TryGetWorldDirection(sourceRotation, adjacentSide, out Vector3 worldDirection))
+            {
+                return worldDirection;
+            }
+
+            return (sourceRotation * GetNormal(adjacentSide)).normalized;
         }
 
         private static Vector3 GetAdjacentWorldDirection(

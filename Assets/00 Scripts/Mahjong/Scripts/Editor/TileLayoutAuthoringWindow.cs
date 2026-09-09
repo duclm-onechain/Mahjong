@@ -87,6 +87,19 @@ namespace MahjongOut3D.Editor
             }
 
             tileSize = ResolveColliderSize(tilePrefab);
+            if (tilePrefab != null)
+            {
+                TileDirectionFrame directionFrame = tilePrefab.DirectionFrame;
+                string directionError = directionFrame == null
+                    ? "TileDirectionFrame is missing."
+                    : string.Empty;
+                if (directionFrame == null || !directionFrame.Validate(out directionError))
+                {
+                    EditorGUILayout.HelpBox(
+                        $"Tile Prefab directions are not configured: {directionError}",
+                        MessageType.Warning);
+                }
+            }
             EditorGUILayout.LabelField("Tiles", layout.Entries.Count.ToString());
             EditorGUILayout.LabelField("Snap", layout.SnapMode.ToString());
             EditorGUI.BeginChangeCheck();
@@ -278,6 +291,7 @@ namespace MahjongOut3D.Editor
                 source.Pose.RollQuarterTurns);
             // Adjacent creation inherits the complete pose of the source tile.
             created.FineRotationOffset = source.FineRotationOffset;
+            created.AdjacentDirectionSpace = TileAdjacentDirectionSpace.TilePrefab;
             created.SetSnapOffset(source, direction, 0, 0);
             created.SnapOffsetSizeSource = TileSnapOffsetSizeSource.SourceTile;
             layout.AddEntry(created);
@@ -317,18 +331,36 @@ namespace MahjongOut3D.Editor
             Vector3 targetRotation = entry.ResolvedEulerAngles;
             Quaternion sourceQuaternion = Quaternion.Euler(sourceRotation);
             Quaternion targetQuaternion = Quaternion.Euler(targetRotation);
-            Vector3 direction = TileSnapMath.GetAdjacentWorldDirection(
-                source.Pose.Face,
-                source.Pose.RollQuarterTurns,
-                entry.SnapDirection,
-                entry.AdjacentDirectionSpace);
             Quaternion semanticRotation = TileSnapMath.GetRotation(source.Pose.Face, source.Pose.RollQuarterTurns);
-            TileSnapMath.GetAdjacentTangentialBasis(
-                semanticRotation,
-                entry.SnapDirection,
-                entry.AdjacentDirectionSpace,
-                out Vector3 tangentU,
-                out Vector3 tangentV);
+            TileDirectionFrame prefabDirectionFrame = tilePrefab != null ? tilePrefab.DirectionFrame : null;
+            Vector3 tangentU;
+            Vector3 tangentV;
+            Vector3 direction = entry.AdjacentDirectionSpace == TileAdjacentDirectionSpace.TilePrefab
+                ? TileSnapMath.GetPrefabWorldDirection(prefabDirectionFrame, sourceQuaternion, entry.SnapDirection)
+                : TileSnapMath.GetAdjacentWorldDirection(
+                    source.Pose.Face,
+                    source.Pose.RollQuarterTurns,
+                    entry.SnapDirection,
+                    entry.AdjacentDirectionSpace);
+            if (entry.AdjacentDirectionSpace == TileAdjacentDirectionSpace.TilePrefab
+                && prefabDirectionFrame != null)
+            {
+                GetPrefabTangentialBasis(
+                    prefabDirectionFrame,
+                    sourceQuaternion,
+                    entry.SnapDirection,
+                    out tangentU,
+                    out tangentV);
+            }
+            else
+            {
+                TileSnapMath.GetAdjacentTangentialBasis(
+                    semanticRotation,
+                    entry.SnapDirection,
+                    entry.AdjacentDirectionSpace,
+                    out tangentU,
+                    out tangentV);
+            }
             Quaternion sizeSourceRotation = entry.SnapOffsetSizeSource == TileSnapOffsetSizeSource.SourceTile
                 ? sourceQuaternion
                 : targetQuaternion;
@@ -358,6 +390,46 @@ namespace MahjongOut3D.Editor
             entry.FinePositionOffset = Vector3.zero;
             EditorUtility.SetDirty(layout);
             SceneView.RepaintAll();
+        }
+
+        private static void GetPrefabTangentialBasis(
+            TileDirectionFrame directionFrame,
+            Quaternion sourceRotation,
+            VoxelGridDirection direction,
+            out Vector3 tangentU,
+            out Vector3 tangentV)
+        {
+            bool hasRight = directionFrame.TryGetLocalDirection(VoxelGridDirection.Right, out Vector3 right);
+            bool hasUp = directionFrame.TryGetLocalDirection(VoxelGridDirection.Up, out Vector3 up);
+            bool hasForward = directionFrame.TryGetLocalDirection(VoxelGridDirection.Forward, out Vector3 forward);
+            if (!hasRight || !hasUp || !hasForward)
+            {
+                directionFrame.TryGetLocalDirection(direction, out Vector3 localDirection);
+                TileSnapMath.GetLocalTangentialBasis(localDirection, out Vector3 localU, out Vector3 localV);
+                tangentU = (sourceRotation * localU).normalized;
+                tangentV = (sourceRotation * localV).normalized;
+                return;
+            }
+
+            switch (direction)
+            {
+                case VoxelGridDirection.Left:
+                case VoxelGridDirection.Right:
+                    tangentU = (sourceRotation * forward).normalized;
+                    tangentV = (sourceRotation * up).normalized;
+                    break;
+                case VoxelGridDirection.Down:
+                case VoxelGridDirection.Up:
+                    tangentU = (sourceRotation * right).normalized;
+                    tangentV = (sourceRotation * forward).normalized;
+                    break;
+                case VoxelGridDirection.Back:
+                case VoxelGridDirection.Forward:
+                default:
+                    tangentU = (sourceRotation * right).normalized;
+                    tangentV = (sourceRotation * up).normalized;
+                    break;
+            }
         }
 
         private Vector3 GetBoardCornerOffset(
@@ -473,7 +545,7 @@ namespace MahjongOut3D.Editor
         {
             EnsurePreviewRoot();
             int desiredCount = layout != null ? layout.Entries.Count : 0;
-            while (previewRoot.transform.childCount > desiredCount * 2)
+            while (previewRoot.transform.childCount > desiredCount)
             {
                 DestroyImmediate(previewRoot.transform.GetChild(previewRoot.transform.childCount - 1).gameObject);
             }
@@ -514,51 +586,37 @@ namespace MahjongOut3D.Editor
                 Vector3 previewRootPosition = entry.ResolvedPosition - (previewRotation * placementOffset);
                 preview.transform.SetLocalPositionAndRotation(previewRootPosition, previewRotation);
                 preview.gameObject.SetActive(true);
-                CreateOrUpdateDirectionMarkers(index, entry, previewRootPosition, previewRotation);
+               // DrawDirectionMarkers(preview);
             }
         }
 
-        private void CreateOrUpdateDirectionMarkers(int index, TileAuthoringEntry entry, Vector3 rootPosition, Quaternion rotation)
+        private void DrawDirectionMarkers(MahjongTile preview)
         {
-            GameObject markerRoot = previewRoot.transform.Find($"DirectionMarkers_{index}")?.gameObject;
-            if (markerRoot == null)
+            TileDirectionFrame directionFrame = preview != null ? preview.DirectionFrame : null;
+            if (directionFrame == null)
             {
-                markerRoot = new GameObject($"DirectionMarkers_{index}");
-                markerRoot.hideFlags = HideFlags.HideAndDontSave;
-                markerRoot.transform.SetParent(previewRoot.transform, false);
+                return;
             }
 
-            markerRoot.transform.SetLocalPositionAndRotation(rootPosition, rotation);
-            Vector3[] directions =
-            {
-                Vector3.left,
-                Vector3.right,
-                Vector3.down,
-                Vector3.up,
-                Vector3.back,
-                Vector3.forward,
-            };
-            string[] names = { "Left", "Right", "Down", "Up", "Back", "Forward" };
+            Vector3 markerCenter = preview.transform.TransformPoint(tilePrefab.GetPlacementOffset());
+            VoxelGridDirection[] directions = VoxelGridDirections.Cardinals;
             Color[] colors = { Color.red, Color.green, Color.yellow, Color.cyan, Color.magenta, Color.blue };
             float markerDistance = Mathf.Max(tileSize.x, Mathf.Max(tileSize.y, tileSize.z)) * 0.8f;
             for (int directionIndex = 0; directionIndex < directions.Length; directionIndex++)
             {
-                Transform markerTransform = markerRoot.transform.Find(names[directionIndex]);
-                if (markerTransform == null)
+                VoxelGridDirection direction = directions[directionIndex];
+                if (!directionFrame.TryGetLocalDirection(direction, out Vector3 localDirection))
                 {
-                    GameObject marker = new GameObject(names[directionIndex]);
-                    marker.hideFlags = HideFlags.HideAndDontSave;
-                    marker.transform.SetParent(markerRoot.transform, false);
-                    markerTransform = marker.transform;
+                    continue;
                 }
 
-                markerTransform.localPosition = directions[directionIndex] * markerDistance;
-                markerTransform.localRotation = Quaternion.identity;
+                Vector3 worldDirection = preview.transform.TransformDirection(localDirection).normalized;
+                Vector3 markerPosition = markerCenter + worldDirection * markerDistance;
                 Handles.color = colors[directionIndex];
-                float handleSize = HandleUtility.GetHandleSize(markerTransform.position) * 0.08f;
-                Handles.DrawLine(markerRoot.transform.position, markerTransform.position);
-                Handles.SphereHandleCap(0, markerTransform.position, Quaternion.identity, handleSize, EventType.Repaint);
-                Handles.Label(markerTransform.position, names[directionIndex]);
+                float handleSize = HandleUtility.GetHandleSize(markerPosition) * 0.08f;
+                Handles.DrawLine(markerCenter, markerPosition);
+                Handles.SphereHandleCap(0, markerPosition, Quaternion.identity, handleSize, EventType.Repaint);
+                Handles.Label(markerPosition, direction.ToString());
             }
         }
 

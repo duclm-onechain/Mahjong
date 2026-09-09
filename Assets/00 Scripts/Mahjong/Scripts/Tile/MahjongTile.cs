@@ -32,6 +32,7 @@ namespace MahjongOut3D.TileSystem
         [SerializeField] private Animator animator;
         [SerializeField] private TileOutlinePresenter outlinePresenter;
         [SerializeField] private TileVisualController visualController;
+        [SerializeField] private TileDirectionFrame directionFrame;
 
         [Header("Runtime")]
         [SerializeField] private TileState state = TileState.Hidden;
@@ -176,6 +177,11 @@ namespace MahjongOut3D.TileSystem
         /// Gets the tile collider used for hit testing.
         /// </summary>
         public Collider TileCollider => tileCollider;
+
+        /// <summary>
+        /// Gets the prefab-local direction frame used by the layout authoring tool.
+        /// </summary>
+        public TileDirectionFrame DirectionFrame => directionFrame;
 
         /// <summary>
         /// Gets the tile animator reference.
@@ -1130,7 +1136,7 @@ namespace MahjongOut3D.TileSystem
                 meshRenderer = visualController != null ? visualController.GetPrimaryRenderer() : GetComponentInChildren<MeshRenderer>(true);
             }
 
-            if (pieceRenderer == null || fillRenderer == null || matchIndicatorRenderer == null || comboIndicatorObject == null)
+            if (pieceRenderer == null || fillRenderer == null || matchIndicatorRenderer == null || comboIndicatorObject == null || directionFrame == null)
             {
                 MeshRenderer[] renderers = GetComponentsInChildren<MeshRenderer>(true);
                 for (int index = 0; index < renderers.Length; index++)
@@ -1156,6 +1162,11 @@ namespace MahjongOut3D.TileSystem
                     {
                         matchIndicatorRenderer = renderer;
                     }
+                }
+
+                if (directionFrame == null)
+                {
+                    directionFrame = GetComponentInChildren<TileDirectionFrame>(true);
                 }
 
                 if (comboIndicatorObject == null)
