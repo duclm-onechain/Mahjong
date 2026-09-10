@@ -58,6 +58,9 @@ namespace MahjongOut3D.TileSystem
         [field: SerializeField, Range(0f, 1f)]
         public float BlockedTintStrength { get; private set; } = 0.6f;
 
+        [field: SerializeField, Min(0.05f)]
+        public float UnblockFadeDuration { get; private set; } = 0.35f;
+
         [field: Header("Shader Properties")]
         [field: SerializeField]
         public string BaseColorProperty { get; private set; } = "_BaseColor";

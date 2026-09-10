@@ -33,6 +33,9 @@ namespace MahjongOut3D.TileSystem
         private bool isHintHighlighted;
         private bool isSelectionBlocked;
         private bool hasResolvedTargetRenderers;
+        private float currentBlockedWeight;
+        private float targetBlockedWeight;
+        private TileState currentState = TileState.Visible;
 
         /// <summary>
         /// Enables or disables the temporary hint highlight visual.
@@ -57,9 +60,21 @@ namespace MahjongOut3D.TileSystem
         /// Enables or disables the dimmed visual used for tiles that cannot currently be selected.
         /// </summary>
         /// <param name="isBlocked">True to darken the tile; otherwise false.</param>
-        public void SetSelectionBlocked(bool isBlocked)
+        /// <param name="instant">True to snap color immediately; false to fade smoothly on unblock.</param>
+        public void SetSelectionBlocked(bool isBlocked, bool instant = false)
         {
+            bool wasBlocked = isSelectionBlocked;
             isSelectionBlocked = isBlocked;
+            targetBlockedWeight = isBlocked ? 1f : 0f;
+
+            if (instant || !isActiveAndEnabled || !Application.isPlaying || currentState != TileState.Visible)
+            {
+                currentBlockedWeight = targetBlockedWeight;
+            }
+            else if (isBlocked && !wasBlocked)
+            {
+                currentBlockedWeight = 1f;
+            }
         }
 
         /// <summary>
@@ -70,6 +85,7 @@ namespace MahjongOut3D.TileSystem
         public void ApplyState(TileState state, bool instant)
         {
             EnsureInitialized();
+            currentState = state;
 
             MahjongTile mahjongTile = GetComponent<MahjongTile>();
             bool isBuffered = mahjongTile != null && mahjongTile.IsBufferedSelection;
@@ -82,6 +98,10 @@ namespace MahjongOut3D.TileSystem
             {
                 currentScale = targetScale;
                 ApplyScale(currentScale);
+                if (state != TileState.Visible)
+                {
+                    currentBlockedWeight = isSelectionBlocked ? 1f : 0f;
+                }
             }
 
             ApplyMaterialFeedback(state);
@@ -171,6 +191,14 @@ namespace MahjongOut3D.TileSystem
             }
 
             ApplyScale(displayScale);
+
+            if (Mathf.Abs(currentBlockedWeight - targetBlockedWeight) > 0.001f)
+            {
+                float fadeDuration = GetUnblockFadeDuration();
+                float fadeSpeed = 1f / Mathf.Max(0.05f, fadeDuration);
+                currentBlockedWeight = Mathf.MoveTowards(currentBlockedWeight, targetBlockedWeight, deltaTime * fadeSpeed);
+                ApplyMaterialFeedback(currentState);
+            }
         }
 
         /// <summary>
@@ -471,9 +499,10 @@ namespace MahjongOut3D.TileSystem
                 return Color.Lerp(baseColor, GetHintTintColor(), GetHintTintStrength());
             }
 
-            if (state == TileState.Visible && isSelectionBlocked)
+            if (state == TileState.Visible && currentBlockedWeight > 0.001f)
             {
-                return Color.Lerp(baseColor, GetBlockedTintColor(), GetBlockedTintStrength());
+                float strength = GetBlockedTintStrength() * currentBlockedWeight;
+                return Color.Lerp(baseColor, GetBlockedTintColor(), strength);
             }
 
             return baseColor;
@@ -700,6 +729,15 @@ namespace MahjongOut3D.TileSystem
         private string GetEmissionColorProperty()
         {
             return settings != null ? settings.EmissionColorProperty : "_EmissionColor";
+        }
+
+        /// <summary>
+        /// Gets the duration of the unblock color fade transition.
+        /// </summary>
+        /// <returns>Fade duration in seconds.</returns>
+        private float GetUnblockFadeDuration()
+        {
+            return settings != null ? settings.UnblockFadeDuration : 0.35f;
         }
 
         /// <summary>

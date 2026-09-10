@@ -955,7 +955,7 @@ namespace MahjongOut3D.TileSystem
             }
 
             visualController.SetSelectionBlocked(isBlocked);
-            visualController.ApplyState(state, true);
+            visualController.ApplyState(state, false);
         }
 
         /// <summary>

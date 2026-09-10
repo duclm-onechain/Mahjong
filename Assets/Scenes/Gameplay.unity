@@ -940,10 +940,10 @@ MonoBehaviour:
   tileBaseColor: {r: 0.8867924, g: 0.7942281, b: 0.7905838, a: 1}
   tileSpacingOffset: {x: 0, y: 0, z: 0.1}
   surfaceTileSpacingOffset: {x: 0, y: 0, z: 0}
-  leftRightSurfaceSpacingOffset: {x: 0, y: 0, z: 0.08}
-  upDownSurfaceSpacingOffset: {x: 0, y: 0, z: 0.08}
-  frontBackSurfaceSpacingOffset: {x: 0, y: 0.08, z: 0}
-  frontBackSurfaceTileLocalZScale: 0.9
+  leftRightSurfaceSpacingOffset: {x: 0.01, y: 0, z: 0.08}
+  upDownSurfaceSpacingOffset: {x: 0.01, y: 0, z: 0.08}
+  frontBackSurfaceSpacingOffset: {x: 0.02, y: 0.08, z: 0}
+  frontBackSurfaceTileLocalZScale: 0.93
   surfaceShellSeparationScale: 0.6
   generateOnStart: 1
   clearExistingChildrenOnGenerate: 1
@@ -12368,6 +12368,7 @@ MonoBehaviour:
   trayMatchLandingScale: 1.5
   trayMatchPreviewMinDurationSeconds: 0.34
   trayMatchEffectTriggerNormalized: 0.5
+  matchTileMaxTiltAngle: 70
   trayCapacityWarningImage: {fileID: 874543857}
   trayShakeDurationSeconds: 0.5
   trayShakeAmplitude: 5
