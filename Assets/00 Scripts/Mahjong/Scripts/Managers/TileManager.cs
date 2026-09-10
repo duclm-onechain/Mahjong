@@ -752,11 +752,6 @@ namespace MahjongOut3D.Managers
                     break;
                 }
 
-                if (!isBlocked && ShouldUseSurfaceCoverageFallback(tile, outwardNormal))
-                {
-                    isBlocked = IsSurfaceSampleCoveredByTile(tile, samplePoints[index], outwardNormal, checkDistance);
-                }
-
                 if (!isBlocked)
                 {
                     openSampleCount++;
@@ -765,112 +760,6 @@ namespace MahjongOut3D.Managers
 
             float openRatio = samplePoints.Length == 0 ? 0f : (float)openSampleCount / samplePoints.Length;
             return openRatio >= GetRequiredVisibleSampleRatio();
-        }
-
-        private bool HasOutwardFaceCoveringTile(MahjongTile tile, Vector3 outwardNormal)
-        {
-            if (tile == null || tile.TileCollider == null)
-            {
-                return false;
-            }
-
-            Vector3[] samplePoints = tile.TileCollider is BoxCollider boxCollider
-                ? BuildSurfaceCoverCheckSamplePoints(boxCollider, tile.transform, outwardNormal, GetVisibilitySampleInset())
-                : BuildSurfaceCoverCheckSamplePoints(tile.TileCollider.bounds, outwardNormal, GetVisibilitySampleInset());
-            float checkDistance = GetSurfaceExposureCheckDistance(tile, outwardNormal);
-
-            for (int index = 0; index < samplePoints.Length; index++)
-            {
-                Vector3 rayOrigin = samplePoints[index] + (outwardNormal * GetVisibilityRayPadding());
-                Ray ray = new Ray(rayOrigin, outwardNormal);
-                int hitCount = Physics.RaycastNonAlloc(ray, raycastBuffer, checkDistance, tileLayerMask, QueryTriggerInteraction.Ignore);
-                if (hitCount <= 0)
-                {
-                    continue;
-                }
-
-                for (int hitIndex = 0; hitIndex < hitCount; hitIndex++)
-                {
-                    RaycastHit hit = raycastBuffer[hitIndex];
-                    if (hit.collider == null)
-                    {
-                        continue;
-                    }
-
-                    MahjongTile hitTile = hit.collider.GetComponentInParent<MahjongTile>();
-                    if (!IsCoveringTileForSurfaceExposure(tile, hitTile))
-                    {
-                        continue;
-                    }
-
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private static bool ShouldUseSurfaceCoverageFallback(MahjongTile tile, Vector3 outwardNormal)
-        {
-            Vector3 localNormal = tile.transform.InverseTransformDirection(outwardNormal).normalized;
-            return Mathf.Abs(localNormal.x) > 0.5f || Mathf.Abs(localNormal.y) > 0.5f;
-        }
-
-        private bool IsSurfaceSampleCoveredByTile(MahjongTile sourceTile, Vector3 samplePoint, Vector3 outwardNormal, float checkDistance)
-        {
-            Vector3 tangentA = GetSurfaceTangentAxis(outwardNormal);
-            Vector3 tangentB = Vector3.Cross(outwardNormal, tangentA).normalized;
-            float sampleDepth = Vector3.Dot(samplePoint, outwardNormal);
-
-            foreach (MahjongTile candidateTile in tilesById.Values)
-            {
-                if (!IsCoveringTileForSurfaceExposure(sourceTile, candidateTile)
-                    || candidateTile.transform.up.sqrMagnitude <= Mathf.Epsilon
-                    || Vector3.Dot(candidateTile.transform.up.normalized, outwardNormal) < 0.95f)
-                {
-                    continue;
-                }
-
-                Vector3 candidateDelta = candidateTile.transform.position - samplePoint;
-                float candidateDepth = Vector3.Dot(candidateTile.transform.position, outwardNormal);
-                if (candidateDepth <= sampleDepth || candidateDepth - sampleDepth > checkDistance)
-                {
-                    continue;
-                }
-
-                float candidateHalfWidth = GetSurfaceHalfExtent(candidateTile, tangentA);
-                float candidateHalfHeight = GetSurfaceHalfExtent(candidateTile, tangentB);
-                float tangentDistanceA = Mathf.Abs(Vector3.Dot(candidateDelta, tangentA));
-                float tangentDistanceB = Mathf.Abs(Vector3.Dot(candidateDelta, tangentB));
-                if (tangentDistanceA <= candidateHalfWidth
-                    && tangentDistanceB <= candidateHalfHeight)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private static Vector3 GetSurfaceTangentAxis(Vector3 outwardNormal)
-        {
-            Vector3 tangent = Vector3.Cross(outwardNormal, Vector3.up);
-            if (tangent.sqrMagnitude <= 0.0001f)
-            {
-                tangent = Vector3.Cross(outwardNormal, Vector3.right);
-            }
-
-            return tangent.normalized;
-        }
-
-        private static float GetSurfaceHalfExtent(MahjongTile tile, Vector3 axis)
-        {
-            if (tile == null || tile.TileCollider == null)
-            {
-                return 0f;
-            }
-
-            return Vector3.Dot(tile.TileCollider.bounds.extents, new Vector3(Mathf.Abs(axis.x), Mathf.Abs(axis.y), Mathf.Abs(axis.z)));
         }
 
         private static bool IsCoveringTileForSurfaceExposure(MahjongTile sourceTile, MahjongTile candidateTile)
@@ -1176,48 +1065,57 @@ namespace MahjongOut3D.Managers
             return BuildFaceGridSamplePoints(faceCenter, tangentA, tangentB, 5);
         }
 
-        private static Vector3[] BuildSurfaceCoverCheckSamplePoints(BoxCollider boxCollider, Transform transform, Vector3 outwardNormal, float inset)
-        {
-            Vector3 localCenter = boxCollider.center;
-            Vector3 localHalfSize = boxCollider.size * 0.5f;
-            float localInset = Mathf.Max(0.001f, inset);
-            Vector3 localNormal = transform.InverseTransformDirection(outwardNormal).normalized;
+       private static Vector3[] BuildSurfaceCoverCheckSamplePoints(BoxCollider boxCollider, Transform transform, Vector3 outwardNormal, float inset)
+{
+    Vector3 localCenter = boxCollider.center;
+    Vector3 localHalfSize = boxCollider.size * 0.5f;
 
-            Vector3 absoluteNormal = new Vector3(Mathf.Abs(localNormal.x), Mathf.Abs(localNormal.y), Mathf.Abs(localNormal.z));
-            Vector3 faceCenter;
-            Vector3 tangentA;
-            Vector3 tangentB;
-            if (absoluteNormal.x >= absoluteNormal.y && absoluteNormal.x >= absoluteNormal.z)
-            {
-                float x = Mathf.Max(0.001f, localHalfSize.x - localInset);
-                faceCenter = localCenter + new Vector3(Mathf.Sign(localNormal.x) * x, 0f, 0f);
-                tangentA = Vector3.up * Mathf.Max(0.001f, localHalfSize.y - localInset);
-                tangentB = Vector3.forward * Mathf.Max(0.001f, localHalfSize.z - localInset);
-            }
-            else if (absoluteNormal.y >= absoluteNormal.x && absoluteNormal.y >= absoluteNormal.z)
-            {
-                float y = Mathf.Max(0.001f, localHalfSize.y - localInset);
-                faceCenter = localCenter + new Vector3(0f, Mathf.Sign(localNormal.y) * y, 0f);
-                tangentA = Vector3.right * Mathf.Max(0.001f, localHalfSize.x - localInset);
-                tangentB = Vector3.forward * Mathf.Max(0.001f, localHalfSize.z - localInset);
-            }
-            else
-            {
-                float z = Mathf.Max(0.001f, localHalfSize.z - localInset);
-                faceCenter = localCenter + new Vector3(0f, 0f, Mathf.Sign(localNormal.z) * z);
-                tangentA = Vector3.right * Mathf.Max(0.001f, localHalfSize.x - localInset);
-                tangentB = Vector3.up * Mathf.Max(0.001f, localHalfSize.y - localInset);
-            }
+    // Quy đổi inset từ world units sang local units dựa trên lossyScale của tile
+    Vector3 lossyScale = transform.lossyScale;
+    Vector3 localInset = new Vector3(
+        inset / Mathf.Max(0.001f, Mathf.Abs(lossyScale.x)),
+        inset / Mathf.Max(0.001f, Mathf.Abs(lossyScale.y)),
+        inset / Mathf.Max(0.001f, Mathf.Abs(lossyScale.z)));
 
-            Vector3[] localPoints = BuildFaceGridSamplePoints(faceCenter, tangentA, tangentB, 5);
-            Vector3[] worldPoints = new Vector3[localPoints.Length];
-            for (int index = 0; index < localPoints.Length; index++)
-            {
-                worldPoints[index] = transform.TransformPoint(localPoints[index]);
-            }
+    Vector3 localNormal = transform.InverseTransformDirection(outwardNormal).normalized;
+    Vector3 absoluteNormal = new Vector3(Mathf.Abs(localNormal.x), Mathf.Abs(localNormal.y), Mathf.Abs(localNormal.z));
 
-            return worldPoints;
-        }
+    Vector3 faceCenter;
+    Vector3 tangentA;
+    Vector3 tangentB;
+
+    if (absoluteNormal.x >= absoluteNormal.y && absoluteNormal.x >= absoluteNormal.z)
+    {
+        // Mặt phẳng Y-Z
+        faceCenter = localCenter + new Vector3(Mathf.Sign(localNormal.x) * localHalfSize.x, 0f, 0f);
+        tangentA = Vector3.up * Mathf.Max(localHalfSize.y * 0.1f, localHalfSize.y - localInset.y);
+        tangentB = Vector3.forward * Mathf.Max(localHalfSize.z * 0.1f, localHalfSize.z - localInset.z);
+    }
+    else if (absoluteNormal.y >= absoluteNormal.x && absoluteNormal.y >= absoluteNormal.z)
+    {
+        // Mặt phẳng X-Z (Mặt hướng lên/ngoài chuẩn của tile Mahjong)
+        faceCenter = localCenter + new Vector3(0f, Mathf.Sign(localNormal.y) * localHalfSize.y, 0f);
+        tangentA = Vector3.right * Mathf.Max(localHalfSize.x * 0.1f, localHalfSize.x - localInset.x);
+        tangentB = Vector3.forward * Mathf.Max(localHalfSize.z * 0.1f, localHalfSize.z - localInset.z);
+    }
+    else
+    {
+        // Mặt phẳng X-Y
+        faceCenter = localCenter + new Vector3(0f, 0f, Mathf.Sign(localNormal.z) * localHalfSize.z);
+        tangentA = Vector3.right * Mathf.Max(localHalfSize.x * 0.1f, localHalfSize.x - localInset.x);
+        tangentB = Vector3.up * Mathf.Max(localHalfSize.y * 0.1f, localHalfSize.y - localInset.y);
+    }
+
+    Vector3[] localPoints = BuildFaceGridSamplePoints(faceCenter, tangentA, tangentB, 5);
+    Vector3[] worldPoints = new Vector3[localPoints.Length];
+    for (int index = 0; index < localPoints.Length; index++)
+    {
+        worldPoints[index] = transform.TransformPoint(localPoints[index]);
+    }
+
+    return worldPoints;
+}
+
 
         private static Vector3[] BuildFaceGridSamplePoints(Vector3 faceCenter, Vector3 tangentA, Vector3 tangentB, int samplesPerAxis)
         {
