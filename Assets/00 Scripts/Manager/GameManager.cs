@@ -150,13 +150,14 @@ public class GameManager : Singleton<GameManager>
     {
         if (GameState == EGameState.Loading)
             return;
-        PackageResource packCost = new PackageResource();
-        packCost.AddResource(new CommonResource(ECommonResource.Energy, -1));
-        packCost.ReceiveResource(EResourceFrom.SpendIngame, false, () =>
-        {
-            GameType = gameType;
+        // PackageResource packCost = new PackageResource();
+        // packCost.AddResource(new CommonResource(ECommonResource.Energy, -1));
+        // packCost.ReceiveResource(EResourceFrom.SpendIngame, false, () =>
+        // {
+           
+        // });
+         GameType = gameType;
             GoSceneGameplay();
-        });
     }
     public void GoSceneHome()
     {
