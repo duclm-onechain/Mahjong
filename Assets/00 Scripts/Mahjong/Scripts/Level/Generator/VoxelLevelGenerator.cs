@@ -153,6 +153,7 @@ namespace MahjongOut3D.LevelSystem
         private Material pieceBaseMaterial;
         private Texture2D pieceTexture;
         private bool activeCubeSurfaceTilePlacement;
+        private bool isCurrentShapeCube;
 
         /// <summary>
         /// Initializes the generator with the shared runtime context.
@@ -210,7 +211,8 @@ namespace MahjongOut3D.LevelSystem
 
             levelDefinition = definition;
             levelManager?.SetActiveLevelDefinition(definition, definition.UseSurfaceTilePlacement);
-            activeCubeSurfaceTilePlacement = definition.UseSurfaceTilePlacement && definition.Shape == LevelShapeType.Cube;
+            isCurrentShapeCube = definition.Shape == LevelShapeType.Cube;
+            activeCubeSurfaceTilePlacement = definition.UseSurfaceTilePlacement && isCurrentShapeCube;
             ConfigureFillTexturePool(definition.FillCategoryNames);
 
             VoxelGridSize singleBlockGridSize = definition.GetSingleBlockRuntimeGridSize();
@@ -243,7 +245,8 @@ namespace MahjongOut3D.LevelSystem
 
             VoxelGridSize gridSize = new VoxelGridSize(jsonData.width, jsonData.height, jsonData.depth);
             levelManager?.SetActiveLevelDefinition(null, jsonData.useSurfaceTilePlacement);
-            activeCubeSurfaceTilePlacement = jsonData.useSurfaceTilePlacement && jsonData.shape == LevelShapeType.Cube;
+            isCurrentShapeCube = jsonData.shape == LevelShapeType.Cube;
+            activeCubeSurfaceTilePlacement = jsonData.useSurfaceTilePlacement && isCurrentShapeCube;
             ConfigureFillTexturePool(jsonData.fillCategoryNames);
             IList<LevelTileDefinition> runtimeTiles = BuildRuntimeTileDefinitions(
                 jsonData.useSurfaceTilePlacement,
@@ -362,6 +365,7 @@ namespace MahjongOut3D.LevelSystem
 
             levelManager?.SetActiveLevelDefinition(null, false);
             activeCubeSurfaceTilePlacement = false;
+            isCurrentShapeCube = false;
             ConfigureFillTexturePool(null);
             return Generate("ArrayGeneratedLevel", new VoxelGridSize(width, height, depth), null, tiles, 1, 0f, 0f);
         }
@@ -414,6 +418,7 @@ namespace MahjongOut3D.LevelSystem
 
             levelManager?.SetActiveLevelDefinition(null, false);
             activeCubeSurfaceTilePlacement = false;
+            isCurrentShapeCube = false;
             ConfigureFillTexturePool(null);
             return Generate("MaskGeneratedLevel", new VoxelGridSize(width, height, depth), null, tiles, 1, 0f, 0f);
         }
@@ -448,6 +453,7 @@ namespace MahjongOut3D.LevelSystem
             activeLevelFillTextures.Clear();
             nextTileId = 0;
             levelManager?.ClearActiveGrid();
+            isCurrentShapeCube = false;
 
             if (clearExistingChildrenOnGenerate && tileRoot != null && (!usePooling || tilePool == null))
             {
@@ -622,6 +628,14 @@ namespace MahjongOut3D.LevelSystem
                 tileManager.RefreshTileExposure();
             }
 
+            Transform rotationRoot = runtimeBlockRoots.Count > 0 && runtimeBlockRoots[0] != null
+                ? runtimeBlockRoots[0]
+                : (tileRoot != null ? tileRoot : transform);
+            if (cameraManager != null)
+            {
+                cameraManager.SetRotationTarget(rotationRoot);
+            }
+
             context.EventBus.Publish(new LevelGeneratedEvent(levelName, spawnedTiles.Count, grid));
         }
 
@@ -642,6 +656,14 @@ namespace MahjongOut3D.LevelSystem
             {
                 tileManager.SetVisibilityRefreshSuspended(false);
                 tileManager.RefreshTileExposure();
+            }
+
+            Transform finalRotationRoot = runtimeBlockRoots.Count > 0 && runtimeBlockRoots[0] != null
+                ? runtimeBlockRoots[0]
+                : (tileRoot != null ? tileRoot : transform);
+            if (cameraManager != null)
+            {
+                cameraManager.SetRotationTarget(finalRotationRoot);
             }
 
             context.EventBus.Publish(new LevelGeneratedEvent(levelName, spawnedTiles.Count, grid));
@@ -1638,12 +1660,13 @@ namespace MahjongOut3D.LevelSystem
 
         /// <summary>
         /// Applies an outward spacing offset so the distance between tiles can be tuned from the inspector.
+        /// This is strictly applied only to Cube levels as documented in the inspector header/tooltip.
         /// </summary>
         /// <param name="localPosition">Original tile local position.</param>
         /// <returns>Adjusted tile local position.</returns>
         private Vector3 ApplyTileSpacing(Vector3 localPosition)
         {
-            if (tileSpacingOffset == Vector3.zero || localPosition.sqrMagnitude <= Mathf.Epsilon)
+            if (!isCurrentShapeCube || tileSpacingOffset == Vector3.zero || localPosition.sqrMagnitude <= Mathf.Epsilon)
             {
                 return localPosition;
             }

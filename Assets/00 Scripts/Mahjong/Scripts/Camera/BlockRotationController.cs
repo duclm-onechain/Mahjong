@@ -141,8 +141,6 @@ namespace MahjongOut3D.CameraSystem
                 return;
             }
 
-            UpdateDynamicPivotPosition();
-
             float deltaTime = Mathf.Max(GetDeltaTime(), 0.0001f);
             Vector2 scaledDelta = screenDelta * GetRotationSpeed();
             scaledDelta.y *= GetVerticalRotationMultiplier();
@@ -258,7 +256,7 @@ namespace MahjongOut3D.CameraSystem
         /// <summary>
         /// Re-centers the runtime pivot without changing the block's visible world pose.
         /// </summary>
-        private void UpdateDynamicPivotPosition()
+        public void UpdateDynamicPivotPosition()
         {
             if (dynamicPivot == null || contentTarget == null || contentTarget.parent != dynamicPivot)
             {
@@ -283,9 +281,14 @@ namespace MahjongOut3D.CameraSystem
 
         private static Vector3 ResolveContentWorldCenter(Transform target)
         {
-            if (TryGetRemainingTileBounds(target, out Bounds tileBounds))
+            if (target == null)
             {
-                return tileBounds.center;
+                return Vector3.zero;
+            }
+
+            if (TryGetRemainingTileLocalCenter(target, out Vector3 localCenter))
+            {
+                return target.TransformPoint(localCenter);
             }
 
             if (TryGetRendererBounds(target, out Bounds rendererBounds))
@@ -296,16 +299,19 @@ namespace MahjongOut3D.CameraSystem
             return target.position;
         }
 
-        private static bool TryGetRemainingTileBounds(Transform target, out Bounds bounds)
+        private static bool TryGetRemainingTileLocalCenter(Transform target, out Vector3 localCenter)
         {
-            bounds = default;
+            localCenter = Vector3.zero;
             if (target == null)
             {
                 return false;
             }
 
             MahjongTile[] tiles = target.GetComponentsInChildren<MahjongTile>(true);
+            Vector3 min = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
+            Vector3 max = new Vector3(float.MinValue, float.MinValue, float.MinValue);
             bool hasBounds = false;
+
             for (int index = 0; index < tiles.Length; index++)
             {
                 MahjongTile tile = tiles[index];
@@ -314,28 +320,19 @@ namespace MahjongOut3D.CameraSystem
                     continue;
                 }
 
-                Bounds tileBounds;
-                if (tile.TileCollider != null)
-                {
-                    tileBounds = tile.TileCollider.bounds;
-                }
-                else if (!TryGetRendererBounds(tile.transform, out tileBounds))
-                {
-                    continue;
-                }
-
-                if (!hasBounds)
-                {
-                    bounds = tileBounds;
-                    hasBounds = true;
-                }
-                else
-                {
-                    bounds.Encapsulate(tileBounds);
-                }
+                Vector3 tileLocalPos = target.InverseTransformPoint(tile.transform.position);
+                min = Vector3.Min(min, tileLocalPos);
+                max = Vector3.Max(max, tileLocalPos);
+                hasBounds = true;
             }
 
-            return hasBounds;
+            if (!hasBounds)
+            {
+                return false;
+            }
+
+            localCenter = (min + max) * 0.5f;
+            return true;
         }
 
         private static bool TryGetRendererBounds(Transform target, out Bounds bounds)
