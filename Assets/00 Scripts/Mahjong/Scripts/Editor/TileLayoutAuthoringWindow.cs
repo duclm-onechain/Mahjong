@@ -169,6 +169,10 @@ namespace MahjongOut3D.Editor
                 {
                     InvertSelection();
                 }
+                if (GUILayout.Button("Center to Origin"))
+                {
+                    CenterLayoutToOrigin();
+                }
             }
 
             int selectedCount = GetSelectedIndices().Count;
@@ -406,6 +410,39 @@ namespace MahjongOut3D.Editor
             }
             List<int> list = GetSelectedIndices();
             selectedEntry = list.Count > 0 ? list[0] : -1;
+            Repaint();
+            SceneView.RepaintAll();
+        }
+
+        private void CenterLayoutToOrigin()
+        {
+            if (layout == null || layout.Entries.Count == 0) return;
+
+            Vector3 min = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
+            Vector3 max = new Vector3(float.MinValue, float.MinValue, float.MinValue);
+            for (int i = 0; i < layout.Entries.Count; i++)
+            {
+                TileAuthoringEntry e = layout.Entries[i];
+                if (e != null)
+                {
+                    min = Vector3.Min(min, e.ResolvedPosition);
+                    max = Vector3.Max(max, e.ResolvedPosition);
+                }
+            }
+            Vector3 center = (min + max) * 0.5f;
+            if (center.sqrMagnitude < 0.0001f) return;
+
+            Undo.RecordObject(layout, "Center Layout to Origin");
+            for (int i = 0; i < layout.Entries.Count; i++)
+            {
+                TileAuthoringEntry e = layout.Entries[i];
+                if (e != null)
+                {
+                    e.LocalPosition -= center;
+                }
+            }
+
+            EditorUtility.SetDirty(layout);
             Repaint();
             SceneView.RepaintAll();
         }
@@ -864,7 +901,7 @@ namespace MahjongOut3D.Editor
                             current.Use();
                             return;
                         }
-                        else if (TrySelectPreviewTile(current.mousePosition))
+                        else if (TrySelectTile(current.mousePosition))
                         {
                             current.Use();
                             return;
@@ -926,32 +963,54 @@ namespace MahjongOut3D.Editor
             }
         }
 
-        private bool TrySelectPreviewTile(Vector2 mousePosition)
+        private bool TrySelectTile(Vector2 mousePosition)
         {
-            if (previewRoot == null)
+            if (layout == null || layout.Entries.Count == 0)
             {
                 return false;
             }
 
-            Physics.SyncTransforms();
             Ray ray = HandleUtility.GUIPointToWorldRay(mousePosition);
-            RaycastHit[] hits = Physics.RaycastAll(ray, Mathf.Infinity, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
             float closestDistance = float.MaxValue;
             int closestIndex = -1;
-            for (int index = 0; index < hits.Length; index++)
-            {
-                MahjongTile preview = hits[index].collider != null
-                    ? hits[index].collider.GetComponentInParent<MahjongTile>()
-                    : null;
-                if (preview == null
-                    || !previewEntryIndices.TryGetValue(preview, out int entryIndex)
-                    || hits[index].distance >= closestDistance)
-                {
-                    continue;
-                }
 
-                closestDistance = hits[index].distance;
-                closestIndex = entryIndex;
+            Vector3 boxExtent = tileSize.sqrMagnitude > 0.001f ? tileSize : Vector3.one;
+
+            for (int index = 0; index < layout.Entries.Count; index++)
+            {
+                TileAuthoringEntry entry = layout.Entries[index];
+                if (entry == null) continue;
+
+                Vector3 pos = entry.ResolvedPosition;
+                Quaternion rot = Quaternion.Euler(entry.ResolvedEulerAngles);
+
+                if (RayIntersectsBox(ray, pos, rot, boxExtent, out float hitDist))
+                {
+                    if (hitDist < closestDistance)
+                    {
+                        closestDistance = hitDist;
+                        closestIndex = index;
+                    }
+                }
+            }
+
+            // Fallback: check screen-space distance to tile center (picks even if clicked near edge)
+            if (closestIndex < 0)
+            {
+                float minScreenDist = 30f;
+                for (int index = 0; index < layout.Entries.Count; index++)
+                {
+                    TileAuthoringEntry entry = layout.Entries[index];
+                    if (entry == null) continue;
+
+                    Vector2 screenPos = HandleUtility.WorldToGUIPoint(entry.ResolvedPosition);
+                    float d = Vector2.Distance(screenPos, mousePosition);
+                    if (d < minScreenDist)
+                    {
+                        minScreenDist = d;
+                        closestIndex = index;
+                    }
+                }
             }
 
             if (closestIndex < 0 || closestIndex >= layout.Entries.Count)
@@ -973,6 +1032,41 @@ namespace MahjongOut3D.Editor
             selectedEntry = selectedEntries.Count > 0 ? closestIndex : -1;
             Repaint();
             SceneView.RepaintAll();
+            return true;
+        }
+
+        private static bool RayIntersectsBox(Ray ray, Vector3 boxCenter, Quaternion boxRotation, Vector3 boxSize, out float distance)
+        {
+            distance = 0f;
+            Vector3 localOrigin = Quaternion.Inverse(boxRotation) * (ray.origin - boxCenter);
+            Vector3 localDir = Quaternion.Inverse(boxRotation) * ray.direction;
+            Vector3 half = boxSize * 0.5f;
+
+            float tMin = 0f;
+            float tMax = float.MaxValue;
+
+            for (int i = 0; i < 3; i++)
+            {
+                float origin = localOrigin[i];
+                float dir = localDir[i];
+                float h = half[i];
+
+                if (Mathf.Abs(dir) < 1e-6f)
+                {
+                    if (origin < -h || origin > h) return false;
+                }
+                else
+                {
+                    float t1 = (-h - origin) / dir;
+                    float t2 = (h - origin) / dir;
+                    if (t1 > t2) { float tmp = t1; t1 = t2; t2 = tmp; }
+                    tMin = Mathf.Max(tMin, t1);
+                    tMax = Mathf.Min(tMax, t2);
+                    if (tMin > tMax) return false;
+                }
+            }
+
+            distance = tMin;
             return true;
         }
 

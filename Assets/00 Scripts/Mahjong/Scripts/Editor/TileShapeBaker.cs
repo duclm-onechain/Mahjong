@@ -19,8 +19,21 @@ namespace MahjongOut3D.Editor
                 throw new System.ArgumentNullException(nameof(layout));
             }
 
+            Vector3 min = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
+            Vector3 max = new Vector3(float.MinValue, float.MinValue, float.MinValue);
+            for (int index = 0; index < layout.Entries.Count; index++)
+            {
+                TileAuthoringEntry entry = layout.Entries[index];
+                if (entry != null)
+                {
+                    min = Vector3.Min(min, entry.ResolvedPosition);
+                    max = Vector3.Max(max, entry.ResolvedPosition);
+                }
+            }
+            Vector3 centerOffset = (min + max) * 0.5f;
+
             List<ManualTileShape.Cell> cells = new List<ManualTileShape.Cell>(layout.Entries.Count);
-            VoxelGridSize gridSize = GetBakeGridSize(layout.GridSize, layout.Entries.Count);
+            VoxelGridSize gridSize = GetBakeGridSize(layout);
             for (int index = 0; index < layout.Entries.Count; index++)
             {
                 TileAuthoringEntry entry = layout.Entries[index];
@@ -31,7 +44,7 @@ namespace MahjongOut3D.Editor
 
                 cells.Add(new ManualTileShape.Cell(
                     GetUniqueCoordinate(index, gridSize),
-                    entry.ResolvedPosition,
+                    entry.ResolvedPosition - centerOffset,
                     entry.ResolvedEulerAngles,
                     entry.SurfaceShellIndex));
             }
@@ -67,14 +80,40 @@ namespace MahjongOut3D.Editor
             AssetDatabase.Refresh();
         }
 
-        private static VoxelGridSize GetBakeGridSize(VoxelGridSize requested, int entryCount)
+        private static VoxelGridSize GetBakeGridSize(TileLayoutAuthoring layout)
         {
-            int width = Mathf.Max(1, requested.Width);
-            int height = Mathf.Max(1, requested.Height);
-            int depth = Mathf.Max(1, requested.Depth);
-            while (width * height * depth < Mathf.Max(1, entryCount))
+            if (layout == null || layout.Entries.Count == 0)
             {
-                depth++;
+                return new VoxelGridSize(4, 4, 4);
+            }
+
+            Vector3 min = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
+            Vector3 max = new Vector3(float.MinValue, float.MinValue, float.MinValue);
+            for (int index = 0; index < layout.Entries.Count; index++)
+            {
+                TileAuthoringEntry entry = layout.Entries[index];
+                if (entry != null)
+                {
+                    min = Vector3.Min(min, entry.ResolvedPosition);
+                    max = Vector3.Max(max, entry.ResolvedPosition);
+                }
+            }
+
+            Vector3 span = max - min;
+            Vector3 step = layout.LayoutOverride != null ? layout.LayoutOverride.CellStep : new Vector3(1f, 1.2f, 1f);
+            Vector3 tileSize = layout.TilePrefab != null ? layout.TilePrefab.GetPlacementSize() : new Vector3(0.72f, 0.48f, 0.72f);
+            if (tileSize.sqrMagnitude <= 0.001f) tileSize = new Vector3(0.72f, 0.48f, 0.72f);
+
+            int width = Mathf.Max(2, Mathf.CeilToInt((span.x + tileSize.x) / Mathf.Max(0.1f, step.x)));
+            int height = Mathf.Max(2, Mathf.CeilToInt((span.y + tileSize.y) / Mathf.Max(0.1f, step.y)));
+            int depth = Mathf.Max(2, Mathf.CeilToInt((span.z + tileSize.z) / Mathf.Max(0.1f, step.z)));
+
+            int entryCount = layout.Entries.Count;
+            while (width * height * depth < entryCount)
+            {
+                if (width <= height && width <= depth) width++;
+                else if (height <= width && height <= depth) height++;
+                else depth++;
             }
 
             return new VoxelGridSize(width, height, depth);
