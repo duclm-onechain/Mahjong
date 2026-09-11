@@ -88,7 +88,7 @@ GameObject:
   - component: {fileID: 992992753576416301}
   - component: {fileID: 6762587546795008645}
   m_Layer: 5
-  m_Name: Button
+  m_Name: Rate
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -261,10 +261,10 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Danh chung toi
+  m_text: Are You Having Fun?
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 6f939805f314b64468dbcb66a6f69eef, type: 2}
-  m_sharedMaterial: {fileID: 4587970125462291467, guid: 6f939805f314b64468dbcb66a6f69eef, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 5a555c0affec81e3186e517960ef6155, type: 2}
+  m_sharedMaterial: {fileID: 2100000, guid: 30d3ed10bd12bc880a0afeefec52829b, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -288,8 +288,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 60
-  m_fontSizeBase: 60
+  m_fontSize: 65
+  m_fontSizeBase: 65
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -601,6 +601,7 @@ GameObject:
   - component: {fileID: 7574810871005804445}
   - component: {fileID: 2573249613613833922}
   - component: {fileID: 4702034338127135099}
+  - component: {fileID: 7700000000000000001}
   m_Layer: 5
   m_Name: Popup Rate
   m_TagString: Untagged
@@ -621,7 +622,6 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 75869535934368179}
-  - {fileID: 7444222842320480556}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -667,6 +667,41 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &7700000000000000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2883857203048417232}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fbeac768bd5c4c0abe42b694ba121f73, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  allowBackKey: 1
+  animatorUI: {fileID: 6061014266184091716}
+  buttonClose: {fileID: 8995763544832240930}
+  blockPanel: {fileID: 0}
+  hackObj: {fileID: 0}
+  btnRate: {fileID: 6762587546795008645}
+  btnClose: {fileID: 8995763544832240930}
+  txtTitle: {fileID: 7849527858166799826}
+  txtDesc: {fileID: 8362298309213309020}
+  txtRateButton: {fileID: 9196548342084958478}
+  starsParent: {fileID: 4611904584262394319}
+  listStarImages:
+  - {fileID: 2948262948309076941}
+  - {fileID: 4200011397791831246}
+  - {fileID: 2184190108489183264}
+  - {fileID: 2253459549101649266}
+  - {fileID: 5277481939213232559}
+  activeStarSprite: {fileID: 21300000, guid: 92a61b57d515c42a7808e33bcec5f3c5, type: 3}
+  inactiveStarSprite: {fileID: 21300000, guid: a68e53b4603c94838aa4f8f7a3b2fb57, type: 3}
+  defaultRating: 5
+  minStarToOpenStore: 4
+  customStoreUrl: https://play.google.com/store/apps/details?id=com.oc.mahjong.blast&hl=vi
+  targetLevel: 7
 --- !u!1 &3494480946640948114
 GameObject:
   m_ObjectHideFlags: 0
@@ -843,18 +878,18 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5193952204026715085}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 6635463192844350500}
   - {fileID: 3509445161727094221}
-  m_Father: {fileID: 7574810871005804445}
+  m_Father: {fileID: 75869535934368179}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -12.137, y: 488.1561}
+  m_AnchoredPosition: {x: -13.137, y: 515.1721}
   m_SizeDelta: {x: 987.76, y: 252.8089}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &875336281093354255
@@ -1155,10 +1190,10 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Close
+  m_text: RATE
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 6f939805f314b64468dbcb66a6f69eef, type: 2}
-  m_sharedMaterial: {fileID: 4587970125462291467, guid: 6f939805f314b64468dbcb66a6f69eef, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 5a555c0affec81e3186e517960ef6155, type: 2}
+  m_sharedMaterial: {fileID: -9167997947334667528, guid: 5a555c0affec81e3186e517960ef6155, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -1261,8 +1296,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 140}
-  m_SizeDelta: {x: 0, y: -325.754}
+  m_AnchoredPosition: {x: -6.587097, y: 140}
+  m_SizeDelta: {x: -81.6805, y: -325.754}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &4706311506915000168
 CanvasRenderer:
@@ -1292,10 +1327,10 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: jasidiasidiasidaisdji
+  m_text: Show Us how much you love and give it 5 start!
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 6f939805f314b64468dbcb66a6f69eef, type: 2}
-  m_sharedMaterial: {fileID: 4587970125462291467, guid: 6f939805f314b64468dbcb66a6f69eef, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 5a555c0affec81e3186e517960ef6155, type: 2}
+  m_sharedMaterial: {fileID: -9167997947334667528, guid: 5a555c0affec81e3186e517960ef6155, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -1319,8 +1354,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
-  m_fontSizeBase: 36
+  m_fontSize: 50
+  m_fontSizeBase: 50
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -1375,6 +1410,7 @@ GameObject:
   - component: {fileID: 75869535934368179}
   - component: {fileID: 471257805975588280}
   - component: {fileID: 2844397116335356054}
+  - component: {fileID: 6061014266184091716}
   m_Layer: 5
   m_Name: BG
   m_TagString: Untagged
@@ -1397,6 +1433,7 @@ RectTransform:
   - {fileID: 7445540184518791149}
   - {fileID: 8623135716361895486}
   - {fileID: 4611904584262394319}
+  - {fileID: 7444222842320480556}
   m_Father: {fileID: 7574810871005804445}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
@@ -1442,3 +1479,25 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!95 &6061014266184091716
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9134216198543735592}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: aa8d49cb9216c53479779e290b52cc48, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0

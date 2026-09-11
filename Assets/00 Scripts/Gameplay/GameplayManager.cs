@@ -111,6 +111,13 @@ public class GameplayManager : Singleton<GameplayManager>
         SetGameOver(win);
         if (winGame)
         {
+            int completedLevel = CurrentLevel;
+            MahjongOut3D.Managers.LevelManager levelManager = UnityEngine.Object.FindAnyObjectByType<MahjongOut3D.Managers.LevelManager>();
+            if (levelManager != null && levelManager.CurrentLevelIndex >= 0)
+            {
+                completedLevel = levelManager.CurrentLevelIndex + 1;
+            }
+
             IPlayerInfoController.Instance.WinLevel();
             IAchievementController.Instance.UpdateAchievementProgress(EAchievementType.LevelWin);
             if (GameManager.Instance.GameType == EGameType.Endless)
@@ -118,7 +125,11 @@ public class GameplayManager : Singleton<GameplayManager>
             IAchievementController.Instance.UpdateAchievementProgress(EAchievementType.LevelWin);
 
             PackReward = CreateWinRewardPackage();
-            UIManager.Instance.ShowPopupWinGame();
+
+            if (!PopupRate.CheckAndShowBeforeWinPopup(completedLevel, () => UIManager.Instance.ShowPopupWinGame(), 7))
+            {
+                UIManager.Instance.ShowPopupWinGame();
+            }
         }
         else
         {

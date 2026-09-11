@@ -805,6 +805,10 @@ namespace MahjongOut3D.Managers
             AssignDifficultyComboTiles();
             if (GameplayManager.Instance != null)
             {
+                if (Context.Services.TryGet(out LevelManager levelManager) && levelManager.CurrentLevelIndex >= 0)
+                {
+                    GameplayManager.Instance.CurrentLevel = levelManager.CurrentLevelIndex + 1;
+                }
                 GameplayManager.Instance.StartGame();
             }
             GetGameManager()?.StartGameplay();

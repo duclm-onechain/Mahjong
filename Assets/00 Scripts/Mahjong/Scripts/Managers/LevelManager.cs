@@ -1,3 +1,4 @@
+using System.Collections;
 using MahjongOut3D.Core;
 using MahjongOut3D.LevelSystem;
 using UnityEngine;
@@ -127,6 +128,10 @@ namespace MahjongOut3D.Managers
             }
 
             SetCurrentLevel(levelIndex);
+            if (GameplayManager.Instance != null)
+            {
+                GameplayManager.Instance.CurrentLevel = levelIndex + 1;
+            }
             SetActiveLevelDefinition(definition, definition != null && definition.UseSurfaceTilePlacement);
             Debug.Log($"[Mahjong] LoadLevel success path. Generating level '{definition.name}' at index {levelIndex}.");
             if (Context.Services.TryGet(out AudioManager audioManager))

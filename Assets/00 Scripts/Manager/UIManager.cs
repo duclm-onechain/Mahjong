@@ -172,6 +172,20 @@ public class UIManager : Singleton<UIManager>
             return dicUsedUI[name];
         UIBase _uiBase = null;
 
+        if (uISafeZone != null)
+        {
+            Transform existing = uISafeZone.transform.Find(name);
+            if (existing != null)
+            {
+                _uiBase = existing.GetComponent<UIBase>();
+                if (_uiBase != null)
+                {
+                    dicUsedUI.Add(name, _uiBase);
+                    return _uiBase;
+                }
+            }
+        }
+
         _uiBase = Instantiate(GetUIByPath(name), uISafeZone.transform);
         _uiBase.transform.localPosition = Vector3.zero;
         _uiBase.transform.localScale = Vector3.one;
@@ -434,6 +448,20 @@ public class UIManager : Singleton<UIManager>
     {
         UIBase ui = GetUI("Popup Mail Box");
         ui.Show();
+    }
+    public void ShowPopupRate(System.Action onClosed = null)
+    {
+        PopupRate ui = GetUI("Popup Rate") as PopupRate;
+        if (ui != null && ui.gameObject.activeSelf)
+            return;
+
+        if (ui != null)
+        {
+            if (onClosed != null)
+                ui.Show(onClosed);
+            else
+                ui.Show();
+        }
     }
     #endregion
 }

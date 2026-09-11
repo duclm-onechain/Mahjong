@@ -49,7 +49,7 @@ public class PopupWinGame : UIBase
         CacheReferences();
         BindButtons();
         RefreshText();
-PlayOpenThenIdle();
+        PlayOpenThenIdle();
     }
 
     public override void OnDisable()
@@ -110,8 +110,28 @@ PlayOpenThenIdle();
 
     void RefreshText()
     {
-        if (titleText != null && GameplayManager.Instance != null)
-            titleText.text = $"Level {GameplayManager.Instance.CurrentLevel} Completed";
+        int levelNumber = 1;
+        LevelManager levelManager = UnityEngine.Object.FindAnyObjectByType<LevelManager>();
+        if (levelManager != null && levelManager.CurrentLevelIndex >= 0)
+        {
+            levelNumber = levelManager.CurrentLevelIndex + 1;
+        }
+        else if (GameplayManager.Instance != null && GameplayManager.Instance.CurrentLevel > 0)
+        {
+            levelNumber = GameplayManager.Instance.CurrentLevel;
+        }
+        else if (IPlayerInfoController.Instance != null)
+        {
+            levelNumber = Mathf.Max(1, IPlayerInfoController.Instance.CurrentLevel());
+        }
+
+        if (GameplayManager.Instance != null)
+        {
+            GameplayManager.Instance.CurrentLevel = levelNumber;
+        }
+
+        if (titleText != null)
+            titleText.text = $"Level {levelNumber} Completed";
     }
 
     Button FindButton(string objectName)
