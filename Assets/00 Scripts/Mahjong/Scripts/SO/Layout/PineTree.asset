@@ -1013,3 +1013,394 @@ MonoBehaviour:
     finePositionOffset: {x: 0, y: 0, z: 0}
     fineRotationOffset: {x: -0.000002786981, y: 180, z: 154.72354}
     surfaceShellIndex: 0
+  - stableId: 
+    matchId: 15
+    localPosition: {x: -0.000000088346496, y: 0.808897, z: 0.88}
+    pose:
+      face: 5
+      rollQuarterTurns: 1
+    useSnapOffset: 1
+    snapSourceStableId: 8661948692a149c7ba399a103d0db455
+    snapDirection: 2
+    adjacentDirectionSpace: 2
+    snapOffsetU: 0
+    snapOffsetV: 0
+    snapOffsetSizeSource: 0
+    adjacentOffsetMode: 0
+    finePositionOffset: {x: 0, y: 0, z: 0}
+    fineRotationOffset: {x: 0, y: 0, z: 0}
+    surfaceShellIndex: 0
+  - stableId: 
+    matchId: 15
+    localPosition: {x: -0.00000008834627, y: 0.808897, z: -0.88}
+    pose:
+      face: 5
+      rollQuarterTurns: 1
+    useSnapOffset: 1
+    snapSourceStableId: e63d40558ba04dfdba5ab5eb59a1389e
+    snapDirection: 2
+    adjacentDirectionSpace: 2
+    snapOffsetU: 0
+    snapOffsetV: 0
+    snapOffsetSizeSource: 0
+    adjacentOffsetMode: 0
+    finePositionOffset: {x: 0, y: 0, z: 0}
+    fineRotationOffset: {x: 180, y: 0, z: 0}
+    surfaceShellIndex: 0
+  - stableId: 
+    matchId: 16
+    localPosition: {x: 0.44, y: 0.808897, z: 0.7621024}
+    pose:
+      face: 5
+      rollQuarterTurns: 1
+    useSnapOffset: 1
+    snapSourceStableId: c05e288c31a147a58f271f484db6b029
+    snapDirection: 2
+    adjacentDirectionSpace: 2
+    snapOffsetU: 0
+    snapOffsetV: 0
+    snapOffsetSizeSource: 0
+    adjacentOffsetMode: 0
+    finePositionOffset: {x: 0, y: 0, z: 0}
+    fineRotationOffset: {x: 30, y: 0, z: 0}
+    surfaceShellIndex: 0
+  - stableId: 
+    matchId: 16
+    localPosition: {x: -0.44000003, y: 0.808897, z: 0.7621024}
+    pose:
+      face: 5
+      rollQuarterTurns: 1
+    useSnapOffset: 1
+    snapSourceStableId: 6575c00f838040f5a783142f1a381b22
+    snapDirection: 2
+    adjacentDirectionSpace: 2
+    snapOffsetU: 0
+    snapOffsetV: 0
+    snapOffsetSizeSource: 0
+    adjacentOffsetMode: 0
+    finePositionOffset: {x: 0, y: 0, z: 0}
+    fineRotationOffset: {x: 330, y: 0, z: 0}
+    surfaceShellIndex: 0
+  - stableId: 
+    matchId: 17
+    localPosition: {x: 0.76210237, y: 0.808897, z: 0.44}
+    pose:
+      face: 5
+      rollQuarterTurns: 1
+    useSnapOffset: 1
+    snapSourceStableId: 0a00d346ec2b4e49bc2df49147724a90
+    snapDirection: 2
+    adjacentDirectionSpace: 2
+    snapOffsetU: 0
+    snapOffsetV: 0
+    snapOffsetSizeSource: 0
+    adjacentOffsetMode: 0
+    finePositionOffset: {x: 0, y: 0, z: 0}
+    fineRotationOffset: {x: 60, y: 0, z: 0}
+    surfaceShellIndex: 0
+  - stableId: 
+    matchId: 17
+    localPosition: {x: -0.76210254, y: 0.8088971, z: 0.44}
+    pose:
+      face: 5
+      rollQuarterTurns: 1
+    useSnapOffset: 1
+    snapSourceStableId: b139752bf8124540a64b2ee1be0561d8
+    snapDirection: 2
+    adjacentDirectionSpace: 2
+    snapOffsetU: 0
+    snapOffsetV: 0
+    snapOffsetSizeSource: 0
+    adjacentOffsetMode: 0
+    finePositionOffset: {x: 0, y: 0, z: 0}
+    fineRotationOffset: {x: 300, y: 0, z: 0}
+    surfaceShellIndex: 0
+  - stableId: 
+    matchId: 18
+    localPosition: {x: 0.87999994, y: 0.808897, z: 0}
+    pose:
+      face: 5
+      rollQuarterTurns: 1
+    useSnapOffset: 1
+    snapSourceStableId: 3b5a1ca6e46f436daad0940c4a568186
+    snapDirection: 2
+    adjacentDirectionSpace: 2
+    snapOffsetU: 0
+    snapOffsetV: 0
+    snapOffsetSizeSource: 0
+    adjacentOffsetMode: 0
+    finePositionOffset: {x: 0, y: 0, z: 0}
+    fineRotationOffset: {x: 90, y: 0, z: 0}
+    surfaceShellIndex: 0
+  - stableId: 
+    matchId: 18
+    localPosition: {x: -0.88000005, y: 0.8088971, z: 0}
+    pose:
+      face: 5
+      rollQuarterTurns: 1
+    useSnapOffset: 1
+    snapSourceStableId: 5844c241eb8d4404ba8a7aa026e8c625
+    snapDirection: 2
+    adjacentDirectionSpace: 2
+    snapOffsetU: 0
+    snapOffsetV: 0
+    snapOffsetSizeSource: 0
+    adjacentOffsetMode: 0
+    finePositionOffset: {x: 0, y: 0, z: 0}
+    fineRotationOffset: {x: 270, y: 0, z: 0}
+    surfaceShellIndex: 0
+  - stableId: 
+    matchId: 19
+    localPosition: {x: 0.76210237, y: 0.808897, z: -0.44}
+    pose:
+      face: 5
+      rollQuarterTurns: 1
+    useSnapOffset: 1
+    snapSourceStableId: 266616542e9342cf9d222c9b079dc8cb
+    snapDirection: 2
+    adjacentDirectionSpace: 2
+    snapOffsetU: 0
+    snapOffsetV: 0
+    snapOffsetSizeSource: 0
+    adjacentOffsetMode: 0
+    finePositionOffset: {x: 0, y: 0, z: 0}
+    fineRotationOffset: {x: 120, y: 0, z: 0}
+    surfaceShellIndex: 0
+  - stableId: 
+    matchId: 19
+    localPosition: {x: -0.7621025, y: 0.808897, z: -0.44}
+    pose:
+      face: 5
+      rollQuarterTurns: 1
+    useSnapOffset: 1
+    snapSourceStableId: f6ed0eae81b043f480d118c866319fbc
+    snapDirection: 2
+    adjacentDirectionSpace: 2
+    snapOffsetU: 0
+    snapOffsetV: 0
+    snapOffsetSizeSource: 0
+    adjacentOffsetMode: 0
+    finePositionOffset: {x: 0, y: 0, z: 0}
+    fineRotationOffset: {x: 240, y: 0, z: 0}
+    surfaceShellIndex: 0
+  - stableId: 
+    matchId: 20
+    localPosition: {x: 0.43999994, y: 0.808897, z: -0.7621024}
+    pose:
+      face: 5
+      rollQuarterTurns: 1
+    useSnapOffset: 1
+    snapSourceStableId: c213f21cd71042d9bb3a05ab4d4cc077
+    snapDirection: 2
+    adjacentDirectionSpace: 2
+    snapOffsetU: 0
+    snapOffsetV: 0
+    snapOffsetSizeSource: 0
+    adjacentOffsetMode: 0
+    finePositionOffset: {x: 0, y: 0, z: 0}
+    fineRotationOffset: {x: 150, y: 0, z: 0}
+    surfaceShellIndex: 0
+  - stableId: 
+    matchId: 20
+    localPosition: {x: -0.44000006, y: 0.808897, z: -0.7621024}
+    pose:
+      face: 5
+      rollQuarterTurns: 1
+    useSnapOffset: 1
+    snapSourceStableId: 93c536b355b4408f9bfe07feb756388a
+    snapDirection: 2
+    adjacentDirectionSpace: 2
+    snapOffsetU: 0
+    snapOffsetV: 0
+    snapOffsetSizeSource: 0
+    adjacentOffsetMode: 0
+    finePositionOffset: {x: 0, y: 0, z: 0}
+    fineRotationOffset: {x: 210, y: 0, z: 0}
+    surfaceShellIndex: 0
+  - stableId: 
+    matchId: 23
+    localPosition: {x: -0.000000088346496, y: 1.608897, z: 0.6}
+    pose:
+      face: 5
+      rollQuarterTurns: 1
+    useSnapOffset: 1
+    snapSourceStableId: 613cd46f325840a9b8cceaf7dbd70831
+    snapDirection: 2
+    adjacentDirectionSpace: 2
+    snapOffsetU: 0
+    snapOffsetV: 0
+    snapOffsetSizeSource: 0
+    adjacentOffsetMode: 0
+    finePositionOffset: {x: 0, y: 0, z: 0}
+    fineRotationOffset: {x: 0, y: 0, z: 0}
+    surfaceShellIndex: 0
+  - stableId: 
+    matchId: 23
+    localPosition: {x: -0.00000008834627, y: 1.608897, z: -0.6}
+    pose:
+      face: 5
+      rollQuarterTurns: 1
+    useSnapOffset: 1
+    snapSourceStableId: 089056d7eb4e4f1d82d4ffef7a391e02
+    snapDirection: 2
+    adjacentDirectionSpace: 2
+    snapOffsetU: 0
+    snapOffsetV: 0
+    snapOffsetSizeSource: 0
+    adjacentOffsetMode: 0
+    finePositionOffset: {x: 0, y: 0, z: 0}
+    fineRotationOffset: {x: 180, y: 0, z: 0}
+    surfaceShellIndex: 0
+  - stableId: 
+    matchId: 24
+    localPosition: {x: 0.42426404, y: 1.608897, z: 0.4242641}
+    pose:
+      face: 5
+      rollQuarterTurns: 1
+    useSnapOffset: 1
+    snapSourceStableId: 1c3299d3541346a8800500c400b641c6
+    snapDirection: 2
+    adjacentDirectionSpace: 2
+    snapOffsetU: 0
+    snapOffsetV: 0
+    snapOffsetSizeSource: 0
+    adjacentOffsetMode: 0
+    finePositionOffset: {x: 0, y: 0, z: 0}
+    fineRotationOffset: {x: 45, y: 0, z: 0}
+    surfaceShellIndex: 0
+  - stableId: 
+    matchId: 24
+    localPosition: {x: -0.42426407, y: 1.6088969, z: 0.4242641}
+    pose:
+      face: 5
+      rollQuarterTurns: 1
+    useSnapOffset: 1
+    snapSourceStableId: 98b8966d7a044115b81d2beea0c32919
+    snapDirection: 2
+    adjacentDirectionSpace: 2
+    snapOffsetU: 0
+    snapOffsetV: 0
+    snapOffsetSizeSource: 0
+    adjacentOffsetMode: 0
+    finePositionOffset: {x: 0, y: 0, z: 0}
+    fineRotationOffset: {x: 315, y: 0, z: 0}
+    surfaceShellIndex: 0
+  - stableId: 
+    matchId: 25
+    localPosition: {x: -0.6000001, y: 1.608897, z: 0}
+    pose:
+      face: 5
+      rollQuarterTurns: 1
+    useSnapOffset: 1
+    snapSourceStableId: 7fc11f7ffb0040318eb92276e09000d2
+    snapDirection: 2
+    adjacentDirectionSpace: 2
+    snapOffsetU: 0
+    snapOffsetV: 0
+    snapOffsetSizeSource: 0
+    adjacentOffsetMode: 0
+    finePositionOffset: {x: 0, y: 0, z: 0}
+    fineRotationOffset: {x: 270, y: 0, z: 0}
+    surfaceShellIndex: 0
+  - stableId: 
+    matchId: 26
+    localPosition: {x: 0.42426413, y: 1.6088969, z: -0.4242641}
+    pose:
+      face: 5
+      rollQuarterTurns: 1
+    useSnapOffset: 1
+    snapSourceStableId: 10724a63d17e4a51b6949c159a4d877f
+    snapDirection: 2
+    adjacentDirectionSpace: 2
+    snapOffsetU: 0
+    snapOffsetV: 0
+    snapOffsetSizeSource: 0
+    adjacentOffsetMode: 0
+    finePositionOffset: {x: 0, y: 0, z: 0}
+    fineRotationOffset: {x: 135, y: 0, z: 0}
+    surfaceShellIndex: 0
+  - stableId: 
+    matchId: 26
+    localPosition: {x: -0.42426413, y: 1.608897, z: -0.4242641}
+    pose:
+      face: 5
+      rollQuarterTurns: 1
+    useSnapOffset: 1
+    snapSourceStableId: ab19a50427ff47a8bcbf601580c09362
+    snapDirection: 2
+    adjacentDirectionSpace: 2
+    snapOffsetU: 0
+    snapOffsetV: 0
+    snapOffsetSizeSource: 0
+    adjacentOffsetMode: 0
+    finePositionOffset: {x: 0, y: 0, z: 0}
+    fineRotationOffset: {x: 225, y: 0, z: 0}
+    surfaceShellIndex: 0
+  - stableId: 
+    matchId: 27
+    localPosition: {x: -0.000000088346496, y: 2.308897, z: 0.35}
+    pose:
+      face: 5
+      rollQuarterTurns: 1
+    useSnapOffset: 1
+    snapSourceStableId: 068c234f9cf442539fb4cc58cc5f1132
+    snapDirection: 2
+    adjacentDirectionSpace: 2
+    snapOffsetU: 0
+    snapOffsetV: 0
+    snapOffsetSizeSource: 0
+    adjacentOffsetMode: 0
+    finePositionOffset: {x: 0, y: 0, z: 0}
+    fineRotationOffset: {x: 0, y: 0, z: 0}
+    surfaceShellIndex: 0
+  - stableId: 
+    matchId: 27
+    localPosition: {x: -0.00000008834627, y: 2.308897, z: -0.35}
+    pose:
+      face: 5
+      rollQuarterTurns: 1
+    useSnapOffset: 1
+    snapSourceStableId: 7c3627f3de2941a5be05b36412141885
+    snapDirection: 2
+    adjacentDirectionSpace: 2
+    snapOffsetU: 0
+    snapOffsetV: 0
+    snapOffsetSizeSource: 0
+    adjacentOffsetMode: 0
+    finePositionOffset: {x: 0, y: 0, z: 0}
+    fineRotationOffset: {x: 180, y: 0, z: 0}
+    surfaceShellIndex: 0
+  - stableId: 
+    matchId: 28
+    localPosition: {x: 0.34999996, y: 2.308897, z: 0}
+    pose:
+      face: 5
+      rollQuarterTurns: 1
+    useSnapOffset: 1
+    snapSourceStableId: 1c1e423a5fe74e21aa3ceaf4e20bfdaa
+    snapDirection: 2
+    adjacentDirectionSpace: 2
+    snapOffsetU: 0
+    snapOffsetV: 0
+    snapOffsetSizeSource: 0
+    adjacentOffsetMode: 0
+    finePositionOffset: {x: 0, y: 0, z: 0}
+    fineRotationOffset: {x: 90, y: 0, z: 0}
+    surfaceShellIndex: 0
+  - stableId: 
+    matchId: 28
+    localPosition: {x: -0.35000002, y: 2.308897, z: 0}
+    pose:
+      face: 5
+      rollQuarterTurns: 1
+    useSnapOffset: 1
+    snapSourceStableId: 76cf9d707938457dbb7e61d28ae3474f
+    snapDirection: 2
+    adjacentDirectionSpace: 2
+    snapOffsetU: 0
+    snapOffsetV: 0
+    snapOffsetSizeSource: 0
+    adjacentOffsetMode: 0
+    finePositionOffset: {x: 0, y: 0, z: 0}
+    fineRotationOffset: {x: 270, y: 0, z: 0}
+    surfaceShellIndex: 0
