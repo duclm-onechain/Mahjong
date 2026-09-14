@@ -1131,7 +1131,7 @@ namespace MahjongOut3D.LevelSystem
                 shellMagnitudes.Add(shellMagnitude);
             }
 
-            if (!useSurfaceTilePlacement)
+            if (!useSurfaceTilePlacement || shape != LevelShapeType.Cube)
             {
                 return runtimeTiles;
             }

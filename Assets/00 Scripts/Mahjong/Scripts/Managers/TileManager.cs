@@ -22,6 +22,7 @@ namespace MahjongOut3D.Managers
         private readonly Dictionary<int, MahjongTile> tilesById = new Dictionary<int, MahjongTile>();
         private readonly Dictionary<int, bool> exposedStateByTileId = new Dictionary<int, bool>();
         private readonly RaycastHit[] raycastBuffer = new RaycastHit[32];
+        private readonly Collider[] overlapBuffer = new Collider[16];
 
         private float xrayEndTime;
         private int activeXRayDepth;
@@ -724,32 +725,56 @@ namespace MahjongOut3D.Managers
                 ? BuildSurfaceCoverCheckSamplePoints(boxCollider, tile.transform, outwardNormal, GetVisibilitySampleInset())
                 : BuildSurfaceCoverCheckSamplePoints(tileCollider.bounds, outwardNormal, GetVisibilitySampleInset());
             int openSampleCount = 0;
-            float checkDistance = GetSurfaceExposureCheckDistance(tile, outwardNormal);
+            float checkDistance = Mathf.Max(1.05f, GetSurfaceExposureCheckDistance(tile, outwardNormal));
 
             for (int index = 0; index < samplePoints.Length; index++)
             {
-                Vector3 rayOrigin = samplePoints[index] + (outwardNormal * GetVisibilityRayPadding());
-                Ray ray = new Ray(rayOrigin, outwardNormal);
-                int hitCount = Physics.RaycastNonAlloc(ray, raycastBuffer, checkDistance, tileLayerMask, QueryTriggerInteraction.Ignore);
+                Vector3 samplePoint = samplePoints[index];
                 bool isBlocked = false;
-                for (int hitIndex = 0; hitIndex < hitCount; hitIndex++)
+
+                // 1. Kiểm tra nếu điểm mẫu chạm hoặc nằm lọt bên trong collider của tile khác (khi xếp tile sát mép hoặc chạm nhau)
+                int overlapCount = Physics.OverlapSphereNonAlloc(samplePoint + (outwardNormal * 0.002f), 0.003f, overlapBuffer, tileLayerMask, QueryTriggerInteraction.Ignore);
+                for (int hitIndex = 0; hitIndex < overlapCount; hitIndex++)
                 {
-                    RaycastHit hit = raycastBuffer[hitIndex];
-                    if (hit.collider == null)
+                    Collider col = overlapBuffer[hitIndex];
+                    if (col == null)
                     {
                         continue;
                     }
 
-                    MahjongTile hitTile = hit.collider.GetComponentInParent<MahjongTile>();
-                    if (!IsCoveringTileForSurfaceExposure(tile, hitTile)
-                        || hitTile.transform.up.sqrMagnitude <= Mathf.Epsilon
-                        || Vector3.Dot(hitTile.transform.up.normalized, outwardNormal) < 0.95f)
+                    MahjongTile hitTile = col.GetComponentInParent<MahjongTile>();
+                    if (hitTile != null && IsCoveringTileForSurfaceExposure(tile, hitTile, outwardNormal))
                     {
-                        continue;
+                        isBlocked = true;
+                        break;
                     }
+                }
 
-                    isBlocked = true;
-                    break;
+                // 2. Bắn tia từ mặt tile ra ngoài theo hướng pháp tuyến outwardNormal (chỉ cách mặt tile 1mm để không bị nhảy qua khe hở 2cm)
+                if (!isBlocked)
+                {
+                    Vector3 rayOrigin = samplePoint + (outwardNormal * 0.001f);
+                    Ray ray = new Ray(rayOrigin, outwardNormal);
+                    int hitCount = Physics.RaycastNonAlloc(ray, raycastBuffer, checkDistance, tileLayerMask, QueryTriggerInteraction.Ignore);
+                    for (int hitIndex = 0; hitIndex < hitCount; hitIndex++)
+                    {
+                        RaycastHit hit = raycastBuffer[hitIndex];
+                        if (hit.collider == null)
+                        {
+                            continue;
+                        }
+
+                        MahjongTile hitTile = hit.collider.GetComponentInParent<MahjongTile>();
+                        if (!IsCoveringTileForSurfaceExposure(tile, hitTile, outwardNormal)
+                            || hitTile.transform.up.sqrMagnitude <= Mathf.Epsilon
+                            || Vector3.Dot(hitTile.transform.up.normalized, outwardNormal) < 0.3f)
+                        {
+                            continue;
+                        }
+
+                        isBlocked = true;
+                        break;
+                    }
                 }
 
                 if (!isBlocked)
@@ -758,11 +783,10 @@ namespace MahjongOut3D.Managers
                 }
             }
 
-            float openRatio = samplePoints.Length == 0 ? 0f : (float)openSampleCount / samplePoints.Length;
-            return openRatio >= GetRequiredVisibleSampleRatio();
+            return openSampleCount == samplePoints.Length;
         }
 
-        private static bool IsCoveringTileForSurfaceExposure(MahjongTile sourceTile, MahjongTile candidateTile)
+        private static bool IsCoveringTileForSurfaceExposure(MahjongTile sourceTile, MahjongTile candidateTile, Vector3 outwardNormal)
         {
             if (sourceTile == null || candidateTile == null)
             {
@@ -784,7 +808,13 @@ namespace MahjongOut3D.Managers
                 return false;
             }
 
-            return candidateTile.SurfaceShellIndex < sourceTile.SurfaceShellIndex;
+            if (candidateTile.SurfaceShellIndex < sourceTile.SurfaceShellIndex)
+            {
+                return true;
+            }
+
+            float depthDifference = Vector3.Dot(candidateTile.transform.position - sourceTile.transform.position, outwardNormal);
+            return depthDifference > 0.01f;
         }
 
         /// <summary>
