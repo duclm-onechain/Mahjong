@@ -709,7 +709,7 @@ MonoBehaviour:
     surfaceShellIndex: 0
   - stableId: 9c559e16ffe14be09c93365263a260c5
     matchId: 25
-    localPosition: {x: 0, y: 2.88, z: 0.45}
+    localPosition: {x: 0, y: 2.88, z: 0.32903013}
     pose:
       face: 5
       rollQuarterTurns: 1
@@ -726,7 +726,7 @@ MonoBehaviour:
     surfaceShellIndex: 0
   - stableId: 1d5553524ef94c9c91db478a7e5eeba3
     matchId: 25
-    localPosition: {x: 0, y: 2.88, z: -0.45}
+    localPosition: {x: 0, y: 2.88, z: -0.32903013}
     pose:
       face: 5
       rollQuarterTurns: 1
@@ -777,7 +777,7 @@ MonoBehaviour:
     surfaceShellIndex: 0
   - stableId: 4a6eece99e9d4009adc0cf6b1408ffdb
     matchId: 27
-    localPosition: {x: 0.013481438, y: 3.2, z: 0}
+    localPosition: {x: 0.013481438, y: 3.3209698, z: 0}
     pose:
       face: 3
       rollQuarterTurns: 0

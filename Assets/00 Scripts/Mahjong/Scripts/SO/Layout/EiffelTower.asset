@@ -724,6 +724,23 @@ MonoBehaviour:
     finePositionOffset: {x: 0, y: 0, z: 0}
     fineRotationOffset: {x: 0, y: 0, z: 0}
     surfaceShellIndex: 0
+  - stableId: 5835e410584549b2a2a4ddf647fafe1b
+    matchId: 23
+    localPosition: {x: 0.1500000, y: 4.320681, z: 0.0000000}
+    pose:
+      face: 5
+      rollQuarterTurns: 1
+    useSnapOffset: 0
+    snapSourceStableId:
+    snapDirection: 1
+    adjacentDirectionSpace: 2
+    snapOffsetU: 0
+    snapOffsetV: 0
+    snapOffsetSizeSource: 0
+    adjacentOffsetMode: 0
+    finePositionOffset: {x: 0, y: 0, z: 0}
+    fineRotationOffset: {x: 0, y: 0, z: 0}
+    surfaceShellIndex: 0
   - stableId: 9d12aa6a80cc43eb80c3421e239b7420
     matchId: 24
     localPosition: {x: 0, y: 0.36, z: 0.4}

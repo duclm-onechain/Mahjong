@@ -1,0 +1,263 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da01b6ecd3554eb2ca74e3b2442e3df4, type: 3}
+  m_Name: HelicopterShape
+  m_EditorClassIdentifier: Assembly-CSharp::MahjongOut3D.LevelSystem.ManualTileShape
+  shapeName: Helicopter
+  gridSize:
+    width: 5
+    height: 3
+    depth: 7
+  layoutOverride: {fileID: 0}
+  tilePrefab: {fileID: -5892857342694290962, guid: 6136af1e8802c5a2ab87778ef2f5f23c, type: 3}
+  layerCount: 2
+  cells:
+  - gridCoordinate: {x: 0, y: 0, z: 0}
+    localPosition: {x: -0.8004426, y: -1.5265536, z: -0.467816}
+    localEulerAngles: {x: -0, y: 0, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 1, y: 0, z: 0}
+    localPosition: {x: 0.6995574, y: -1.4092683, z: -0.47613686}
+    localEulerAngles: {x: -0.000005008957, y: 180, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 2, y: 0, z: 0}
+    localPosition: {x: -0.8004426, y: -1.5265536, z: 0.7021059}
+    localEulerAngles: {x: -0, y: 0, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 3, y: 0, z: 0}
+    localPosition: {x: 0.6995574, y: -1.4092683, z: 0.69282585}
+    localEulerAngles: {x: -0.000005008957, y: 180, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 4, y: 0, z: 0}
+    localPosition: {x: -0.6004426, y: -1.0765537, z: -0.20717415}
+    localEulerAngles: {x: -0, y: 0, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 0, y: 1, z: 0}
+    localPosition: {x: 0.49955744, y: -1.0487168, z: -0.20717415}
+    localEulerAngles: {x: -0.000005008957, y: 180, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 1, y: 1, z: 0}
+    localPosition: {x: -0.6004426, y: -1.0765537, z: 0.49282584}
+    localEulerAngles: {x: -0, y: 0, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 2, y: 1, z: 0}
+    localPosition: {x: 0.49955744, y: -1.0487168, z: 0.49282584}
+    localEulerAngles: {x: -0.000005008957, y: 180, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 3, y: 1, z: 0}
+    localPosition: {x: -0.050442576, y: -0.32779872, z: 1.4928259}
+    localEulerAngles: {x: -0, y: 90, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 4, y: 1, z: 0}
+    localPosition: {x: -0.050442576, y: -0.32779872, z: -0.20717415}
+    localEulerAngles: {x: -0, y: 270, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 0, y: 2, z: 0}
+    localPosition: {x: 0.5505982, y: -0.32779872, z: 1.2438667}
+    localEulerAngles: {x: -0, y: 135, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 1, y: 2, z: 0}
+    localPosition: {x: -0.65148336, y: -0.32779872, z: 1.2438667}
+    localEulerAngles: {x: -0, y: 44.999996, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 2, y: 2, z: 0}
+    localPosition: {x: 0.79955745, y: -0.32779872, z: 0.64282584}
+    localEulerAngles: {x: -0, y: 180, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 3, y: 2, z: 0}
+    localPosition: {x: -0.9004426, y: -0.32779872, z: 0.64282584}
+    localEulerAngles: {x: -0, y: -0, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 4, y: 2, z: 0}
+    localPosition: {x: 0.5505982, y: -0.32779872, z: 0.04178504}
+    localEulerAngles: {x: -0, y: 225, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 0, y: 0, z: 1}
+    localPosition: {x: -0.65148336, y: -0.32779872, z: 0.04178504}
+    localEulerAngles: {x: -0, y: 315, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 1, y: 0, z: 1}
+    localPosition: {x: -0.050442576, y: 0.39220142, z: 1.8165741}
+    localEulerAngles: {x: -0, y: 90, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 2, y: 0, z: 1}
+    localPosition: {x: -0.050442576, y: 0.3922013, z: -0.47618967}
+    localEulerAngles: {x: -0, y: 270, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 3, y: 0, z: 1}
+    localPosition: {x: 0.5280796, y: 0.3922013, z: 1.6448555}
+    localEulerAngles: {x: -0, y: 120.00001, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 4, y: 0, z: 1}
+    localPosition: {x: -0.62394416, y: 0.3922013, z: 1.6361595}
+    localEulerAngles: {x: -0, y: 59.99999, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 0, y: 1, z: 1}
+    localPosition: {x: 0.9588877, y: 0.3922013, z: 1.2255629}
+    localEulerAngles: {x: -0, y: 150, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 1, y: 1, z: 1}
+    localPosition: {x: -1.0750126, y: 0.39220142, z: 1.2343615}
+    localEulerAngles: {x: -0, y: 29.999994, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 2, y: 1, z: 1}
+    localPosition: {x: 1.1047512, y: 0.3922013, z: 0.64282584}
+    localEulerAngles: {x: -0, y: 180, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 3, y: 1, z: 1}
+    localPosition: {x: -1.1946524, y: 0.3922013, z: 0.64282584}
+    localEulerAngles: {x: -0, y: -0, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 4, y: 1, z: 1}
+    localPosition: {x: 0.93817043, y: 0.39220142, z: 0.07204984}
+    localEulerAngles: {x: -0, y: 210, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 0, y: 2, z: 1}
+    localPosition: {x: -1.0232948, y: 0.3922013, z: 0.081149295}
+    localEulerAngles: {x: -0, y: 330, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 1, y: 2, z: 1}
+    localPosition: {x: 0.5180962, y: 0.3922013, z: -0.34191227}
+    localEulerAngles: {x: -0, y: 240, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 2, y: 2, z: 1}
+    localPosition: {x: -0.618801, y: 0.3922013, z: -0.34159982}
+    localEulerAngles: {x: -0, y: 300, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 3, y: 2, z: 1}
+    localPosition: {x: -0.25044268, y: 0.39220142, z: -0.8548659}
+    localEulerAngles: {x: -0, y: 0, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 4, y: 2, z: 1}
+    localPosition: {x: 0.14955734, y: 0.39220142, z: -0.8548659}
+    localEulerAngles: {x: -0.000005008957, y: 180, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 0, y: 0, z: 2}
+    localPosition: {x: -0.25044268, y: 0.39220142, z: -1.4383113}
+    localEulerAngles: {x: -0, y: 0, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 1, y: 0, z: 2}
+    localPosition: {x: 0.14955734, y: 0.39220142, z: -1.4473435}
+    localEulerAngles: {x: -0.000005008957, y: 180, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 2, y: 0, z: 2}
+    localPosition: {x: -0.25044268, y: 0.39220142, z: -2.021847}
+    localEulerAngles: {x: -0, y: 0, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 3, y: 0, z: 2}
+    localPosition: {x: 0.14955734, y: 0.39220142, z: -2.0397112}
+    localEulerAngles: {x: -0.000005008957, y: 180, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 4, y: 0, z: 2}
+    localPosition: {x: -0.026602663, y: 1.1113698, z: -2.69574}
+    localEulerAngles: {x: -0, y: 270, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 0, y: 1, z: 2}
+    localPosition: {x: -0.40044257, y: 1.1113698, z: -2.3328307}
+    localEulerAngles: {x: -0, y: 0, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 1, y: 1, z: 2}
+    localPosition: {x: 0.29955742, y: 1.1113698, z: -2.3328307}
+    localEulerAngles: {x: -0.000005008957, y: 180, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 2, y: 1, z: 2}
+    localPosition: {x: -0.36960644, y: 1.0722013, z: 0.6428258}
+    localEulerAngles: {x: -0, y: 90, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 3, y: 1, z: 2}
+    localPosition: {x: 0.21830225, y: 1.0722013, z: 0.64282584}
+    localEulerAngles: {x: -0, y: 90, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 4, y: 1, z: 2}
+    localPosition: {x: -0.6604579, y: 1.5265536, z: 0.3015585}
+    localEulerAngles: {x: -0, y: 331.71582, z: 0}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 0, y: 2, z: 2}
+    localPosition: {x: 0.6604577, y: 1.5265536, z: 1.0123212}
+    localEulerAngles: {x: -0, y: 331.71582, z: 0}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 1, y: 2, z: 2}
+    localPosition: {x: 0.049655423, y: -0.22684109, z: 1.0286868}
+    localEulerAngles: {x: 0.00007683963, y: 104.41263, z: 90.0001}
+    surfaceShellIndex: 1
+  - gridCoordinate: {x: 2, y: 2, z: 2}
+    localPosition: {x: -0.1494679, y: -0.22684109, z: 0.25386426}
+    localEulerAngles: {x: 0.000005122642, y: 284.412, z: 90.00001}
+    surfaceShellIndex: 1
+  - gridCoordinate: {x: 3, y: 2, z: 2}
+    localPosition: {x: 0.3375052, y: -0.22684133, z: 0.5417142}
+    localEulerAngles: {x: -0.000079827834, y: 194.41164, z: 90.00026}
+    surfaceShellIndex: 1
+  - gridCoordinate: {x: 4, y: 2, z: 2}
+    localPosition: {x: -0.43731773, y: -0.22684109, z: 0.7408371}
+    localEulerAngles: {x: 0.000014514152, y: 14.412111, z: 89.99963}
+    surfaceShellIndex: 1
+  - gridCoordinate: {x: 0, y: 0, z: 3}
+    localPosition: {x: -0.007834494, y: 1.5265536, z: 0.65272355}
+    localEulerAngles: {x: -0, y: 331.71582, z: 0}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 1, y: 0, z: 3}
+    localPosition: {x: 1.3130802, y: 1.5265536, z: 1.3634853}
+    localEulerAngles: {x: -0, y: 331.71582, z: 0}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 2, y: 0, z: 3}
+    localPosition: {x: 1.9657036, y: 1.5265536, z: 1.7146505}
+    localEulerAngles: {x: -0, y: 331.71582, z: 0}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 3, y: 0, z: 3}
+    localPosition: {x: -1.3130804, y: 1.5265536, z: -0.049605608}
+    localEulerAngles: {x: -0, y: 331.71582, z: 0}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 4, y: 0, z: 3}
+    localPosition: {x: -1.9657036, y: 1.5265536, z: -0.4007709}
+    localEulerAngles: {x: -0, y: 331.71582, z: 0}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 0, y: 1, z: 3}
+    localPosition: {x: 0.2669931, y: 1.5265536, z: 0.14196992}
+    localEulerAngles: {x: -0, y: 331.71582, z: 0}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 1, y: 1, z: 3}
+    localPosition: {x: 0.54182035, y: 1.5265536, z: -0.36878324}
+    localEulerAngles: {x: -0, y: 331.71582, z: 0}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 2, y: 1, z: 3}
+    localPosition: {x: 0.81664866, y: 1.5265536, z: -0.8795378}
+    localEulerAngles: {x: -0, y: 331.71582, z: 0}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 3, y: 1, z: 3}
+    localPosition: {x: -0.28266254, y: 1.5265536, z: 1.1634784}
+    localEulerAngles: {x: -0, y: 331.71582, z: 0}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 4, y: 1, z: 3}
+    localPosition: {x: -0.5574903, y: 1.5265536, z: 1.6742318}
+    localEulerAngles: {x: -0, y: 331.71582, z: 0}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 0, y: 2, z: 3}
+    localPosition: {x: -0.83231777, y: 1.5265536, z: 2.1849852}
+    localEulerAngles: {x: -0, y: 331.71582, z: 0}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 1, y: 2, z: 3}
+    localPosition: {x: -1.1071458, y: 1.5265536, z: 2.69574}
+    localEulerAngles: {x: -0, y: 331.71582, z: 0}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 2, y: 2, z: 3}
+    localPosition: {x: 1.0914763, y: 1.5265536, z: -1.3902929}
+    localEulerAngles: {x: -0, y: 331.71582, z: 0}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 3, y: 2, z: 3}
+    localPosition: {x: 0.69955736, y: -1.4092681, z: 0.11282593}
+    localEulerAngles: {x: -0.000005008957, y: 180, z: 90}
+    surfaceShellIndex: 0
+  - gridCoordinate: {x: 4, y: 2, z: 3}
+    localPosition: {x: -0.8004426, y: -1.5265536, z: 0.11282587}
+    localEulerAngles: {x: -0, y: 0, z: 90}
+    surfaceShellIndex: 0
