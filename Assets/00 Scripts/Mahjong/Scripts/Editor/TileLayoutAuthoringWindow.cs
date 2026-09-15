@@ -22,9 +22,20 @@ namespace MahjongOut3D.Editor
         private Vector2 marqueeCurrent;
         private int batchMatchId = 1;
         private int batchShell = 0;
+        private VoxelGridDirection batchFace = VoxelGridDirection.Back;
+        private int batchRoll = 3;
+        private bool multiSelectSyncPose = true;
+        private int lastSelectedEntry = -1;
         private Vector3 tileSize = Vector3.one;
         private GameObject previewRoot;
         private readonly Dictionary<MahjongTile, int> previewEntryIndices = new Dictionary<MahjongTile, int>();
+
+        private static readonly Color GapBoxColor = new Color(1.0f, 0.84f, 0.40f);       // Warm Gold / Amber for Tile Gap & Snap
+        private static readonly Color MoveBoxColor = new Color(0.40f, 0.75f, 1.0f);      // Sky Blue for Move Selected
+        private static readonly Color MoveButtonColor = new Color(0.55f, 0.85f, 1.0f);   // Vibrant Blue button accent
+        private static readonly Color CreateBoxColor = new Color(0.40f, 0.92f, 0.55f);   // Emerald Green for Create Adjacent
+        private static readonly Color CreateButtonColor = new Color(0.55f, 0.98f, 0.65f); // Vibrant Green button accent
+        private static readonly Color BatchBoxColor = new Color(0.85f, 0.68f, 1.0f);     // Purple / Lavender for Batch Edit
 
         [MenuItem("Tools/Mahjong Out 3D/Levels/Manual Tile Layout Editor")]
         public static void Open()
@@ -72,6 +83,35 @@ namespace MahjongOut3D.Editor
 
         private void OnGUI()
         {
+            Event currentEvent = Event.current;
+            if (currentEvent.type == EventType.KeyDown && layout != null)
+            {
+                // Only trigger shortcut when not focused on an active text input field
+                if (GUIUtility.keyboardControl == 0)
+                {
+                    if (currentEvent.keyCode == KeyCode.Delete || currentEvent.keyCode == KeyCode.Backspace)
+                    {
+                        if (GetSelectedIndices().Count > 0)
+                        {
+                            DeleteSelected();
+                            currentEvent.Use();
+                            GUIUtility.ExitGUI();
+                            return;
+                        }
+                    }
+                    else if (currentEvent.keyCode == KeyCode.D && (currentEvent.control || currentEvent.command))
+                    {
+                        if (GetSelectedIndices().Count > 0)
+                        {
+                            DuplicateSelected();
+                            currentEvent.Use();
+                            GUIUtility.ExitGUI();
+                            return;
+                        }
+                    }
+                }
+            }
+
             EditorGUILayout.LabelField("Manual Mahjong Layout", EditorStyles.boldLabel);
             layout = (TileLayoutAuthoring)EditorGUILayout.ObjectField("Authoring Asset", layout, typeof(TileLayoutAuthoring), false);
             if (layout == null)
@@ -82,6 +122,18 @@ namespace MahjongOut3D.Editor
                     CreateLayoutAsset();
                 }
                 return;
+            }
+
+            if (lastSelectedEntry != selectedEntry)
+            {
+                lastSelectedEntry = selectedEntry;
+                if (selectedEntry >= 0 && selectedEntry < layout.Entries.Count && layout.Entries[selectedEntry] != null)
+                {
+                    batchFace = layout.Entries[selectedEntry].Pose.Face;
+                    batchRoll = layout.Entries[selectedEntry].Pose.RollQuarterTurns;
+                    batchMatchId = layout.Entries[selectedEntry].MatchId;
+                    batchShell = layout.Entries[selectedEntry].SurfaceShellIndex;
+                }
             }
 
             MahjongTile assignedPrefab = layout.TilePrefab != null ? layout.TilePrefab : tilePrefab;
@@ -109,69 +161,99 @@ namespace MahjongOut3D.Editor
             }
             EditorGUILayout.LabelField("Tiles", layout.Entries.Count.ToString());
             EditorGUILayout.LabelField("Selected Tiles", selectedEntries.Count.ToString());
-            EditorGUILayout.LabelField("Snap", layout.SnapMode.ToString());
-            EditorGUI.BeginChangeCheck();
-            TileLayoutSnapMode snapMode = (TileLayoutSnapMode)EditorGUILayout.EnumPopup("Snap Step", layout.SnapMode);
-            TileDefaultPlacementPose defaultPose = (TileDefaultPlacementPose)EditorGUILayout.EnumPopup("Default Tile Pose", layout.DefaultPlacementPose);
-            TilePlacementPosture defaultPosture = (TilePlacementPosture)EditorGUILayout.EnumPopup("Default Posture", layout.DefaultPosture);
-            EditorGUILayout.HelpBox("Default: Standing + Vertical + Back. Adjacent Left/Right/Up/Down follow the visible surface of the selected tile.", MessageType.None);
-            VoxelGridDirection defaultStandingFace = layout.DefaultStandingFace;
-            int defaultStandingRoll = layout.DefaultStandingRoll;
-            if (defaultPose == TileDefaultPlacementPose.Standing || defaultPose == TileDefaultPlacementPose.Sideways || defaultPose == TileDefaultPlacementPose.Custom)
-            {
-                defaultStandingFace = (VoxelGridDirection)EditorGUILayout.EnumPopup("Default Standing Face", defaultStandingFace);
-                defaultStandingRoll = EditorGUILayout.IntSlider("Default Standing Roll", defaultStandingRoll, 0, 3);
-            }
-            float snapDistance = EditorGUILayout.FloatField("Magnetic Distance", layout.SnapDistance);
-            float tileGap = EditorGUILayout.FloatField("Tile Gap", layout.TileGap);
-            if (EditorGUI.EndChangeCheck())
-            {
-                Undo.RecordObject(layout, "Change Tile Snap Settings");
-                layout.SetSnapMode(snapMode);
-                layout.SetDefaultPlacementPose(defaultPose);
-                layout.SetDefaultPosture(defaultPosture);
-                layout.SetDefaultStandingFace(defaultStandingFace);
-                layout.SetDefaultStandingRoll(defaultStandingRoll);
-                layout.SetSnapDistance(snapDistance);
-                layout.SetTileGap(tileGap);
-                EditorUtility.SetDirty(layout);
-                SceneView.RepaintAll();
-            }
 
-            using (new EditorGUILayout.HorizontalScope())
+            Color originalBg = GUI.backgroundColor;
+
+            // --- 1. TILE GAP & SNAP SETTINGS BOX (Vàng hổ phách / Gold) ---
+            EditorGUILayout.Space(2f);
+            GUI.backgroundColor = GapBoxColor;
+            using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
             {
-                placing = GUILayout.Toggle(placing, placing ? "Placing..." : "Place Tile", "Button");
-                marqueeMode = GUILayout.Toggle(marqueeMode, marqueeMode ? "Box Selecting..." : "Box Select", "Button");
-                using (new EditorGUI.DisabledScope(GetSelectedIndices().Count == 0))
+                GUI.backgroundColor = originalBg;
+                EditorGUILayout.LabelField("⚙ Snap & Tile Gap Settings", EditorStyles.boldLabel);
+                EditorGUI.BeginChangeCheck();
+                TileLayoutSnapMode snapMode = (TileLayoutSnapMode)EditorGUILayout.EnumPopup("Snap Step", layout.SnapMode);
+                TileDefaultPlacementPose defaultPose = (TileDefaultPlacementPose)EditorGUILayout.EnumPopup("Default Tile Pose", layout.DefaultPlacementPose);
+                TilePlacementPosture defaultPosture = (TilePlacementPosture)EditorGUILayout.EnumPopup("Default Posture", layout.DefaultPosture);
+                EditorGUILayout.HelpBox("Default: Standing + Vertical + Back. Adjacent Left/Right/Up/Down follow the visible surface of the selected tile.", MessageType.None);
+                VoxelGridDirection defaultStandingFace = layout.DefaultStandingFace;
+                int defaultStandingRoll = layout.DefaultStandingRoll;
+                if (defaultPose == TileDefaultPlacementPose.Standing || defaultPose == TileDefaultPlacementPose.Sideways || defaultPose == TileDefaultPlacementPose.Custom)
                 {
-                    if (GUILayout.Button("Duplicate"))
-                    {
-                        DuplicateSelected();
-                    }
-                    if (GUILayout.Button("Delete"))
-                    {
-                        DeleteSelected();
-                    }
+                    defaultStandingFace = (VoxelGridDirection)EditorGUILayout.EnumPopup("Default Standing Face", defaultStandingFace);
+                    defaultStandingRoll = EditorGUILayout.IntSlider("Default Standing Roll", defaultStandingRoll, 0, 3);
+                }
+                float snapDistance = EditorGUILayout.FloatField("Magnetic Distance", layout.SnapDistance);
+                float tileGap = EditorGUILayout.FloatField("Tile Gap", layout.TileGap);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    Undo.RecordObject(layout, "Change Tile Snap Settings");
+                    layout.SetSnapMode(snapMode);
+                    layout.SetDefaultPlacementPose(defaultPose);
+                    layout.SetDefaultPosture(defaultPosture);
+                    layout.SetDefaultStandingFace(defaultStandingFace);
+                    layout.SetDefaultStandingRoll(defaultStandingRoll);
+                    layout.SetSnapDistance(snapDistance);
+                    layout.SetTileGap(tileGap);
+                    EditorUtility.SetDirty(layout);
+                    SceneView.RepaintAll();
                 }
             }
+            GUI.backgroundColor = originalBg;
 
-            using (new EditorGUILayout.HorizontalScope())
+            EditorGUILayout.Space(2f);
+            using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
             {
-                if (GUILayout.Button("Select All"))
+                using (new EditorGUILayout.HorizontalScope())
                 {
-                    SelectAll();
+                    Color prevColor = GUI.backgroundColor;
+                    GUI.backgroundColor = placing ? new Color(1.0f, 0.60f, 0.15f) : new Color(1.0f, 0.90f, 0.65f);
+                    placing = GUILayout.Toggle(placing, placing ? "● Placing..." : "Place Tile", "Button");
+
+                    GUI.backgroundColor = marqueeMode ? new Color(0.25f, 0.75f, 1.0f) : new Color(0.65f, 0.88f, 1.0f);
+                    marqueeMode = GUILayout.Toggle(marqueeMode, marqueeMode ? "⧈ Box Selecting..." : "Box Select", "Button");
+
+                    using (new EditorGUI.DisabledScope(GetSelectedIndices().Count == 0))
+                    {
+                        GUI.backgroundColor = new Color(0.50f, 0.90f, 0.85f);
+                        if (GUILayout.Button("Duplicate (Ctrl+D)"))
+                        {
+                            DuplicateSelected();
+                        }
+
+                        GUI.backgroundColor = new Color(1.0f, 0.42f, 0.42f);
+                        if (GUILayout.Button("Delete (Del)"))
+                        {
+                            DeleteSelected();
+                        }
+                    }
+                    GUI.backgroundColor = prevColor;
                 }
-                if (GUILayout.Button("Clear"))
+
+                using (new EditorGUILayout.HorizontalScope())
                 {
-                    ClearSelection();
-                }
-                if (GUILayout.Button("Invert"))
-                {
-                    InvertSelection();
-                }
-                if (GUILayout.Button("Center to Origin"))
-                {
-                    CenterLayoutToOrigin();
+                    Color prevColor = GUI.backgroundColor;
+                    GUI.backgroundColor = new Color(0.78f, 0.86f, 1.0f);
+                    if (GUILayout.Button("Select All"))
+                    {
+                        SelectAll();
+                    }
+                    GUI.backgroundColor = new Color(0.95f, 0.78f, 0.78f);
+                    if (GUILayout.Button("Clear"))
+                    {
+                        ClearSelection();
+                    }
+                    GUI.backgroundColor = new Color(0.86f, 0.78f, 1.0f);
+                    if (GUILayout.Button("Invert"))
+                    {
+                        InvertSelection();
+                    }
+                    GUI.backgroundColor = new Color(1.0f, 0.92f, 0.70f);
+                    if (GUILayout.Button("Center to Origin"))
+                    {
+                        CenterLayoutToOrigin();
+                    }
+                    GUI.backgroundColor = prevColor;
                 }
             }
 
@@ -179,91 +261,161 @@ namespace MahjongOut3D.Editor
             if (selectedCount > 0)
             {
                 string countSuffix = selectedCount > 1 ? $" ({selectedCount} Tiles)" : "";
-                EditorGUILayout.LabelField($"Move Selected{countSuffix}", EditorStyles.boldLabel);
-                using (new EditorGUILayout.HorizontalScope())
+
+                // --- 2. MOVE SELECTED BOX (Xanh dương / Sky Blue) ---
+                EditorGUILayout.Space(2f);
+                GUI.backgroundColor = MoveBoxColor;
+                using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
                 {
-                    if (GUILayout.Button("Left")) MoveSelectedTiles(VoxelGridDirection.Left);
-                    if (GUILayout.Button("Right")) MoveSelectedTiles(VoxelGridDirection.Right);
-                    if (GUILayout.Button("Down")) MoveSelectedTiles(VoxelGridDirection.Down);
-                    if (GUILayout.Button("Up")) MoveSelectedTiles(VoxelGridDirection.Up);
-                }
-                using (new EditorGUILayout.HorizontalScope())
-                {
-                    if (GUILayout.Button("Back")) MoveSelectedTiles(VoxelGridDirection.Back);
-                    if (GUILayout.Button("Forward")) MoveSelectedTiles(VoxelGridDirection.Forward);
+                    GUI.backgroundColor = originalBg;
+                    EditorGUILayout.LabelField($"✥ Move Selected{countSuffix}", EditorStyles.boldLabel);
+                    GUI.backgroundColor = MoveButtonColor;
+                    using (new EditorGUILayout.HorizontalScope())
+                    {
+                        if (GUILayout.Button("← Left")) MoveSelectedTiles(VoxelGridDirection.Left);
+                        if (GUILayout.Button("Right →")) MoveSelectedTiles(VoxelGridDirection.Right);
+                        if (GUILayout.Button("↓ Down")) MoveSelectedTiles(VoxelGridDirection.Down);
+                        if (GUILayout.Button("↑ Up")) MoveSelectedTiles(VoxelGridDirection.Up);
+                    }
+                    using (new EditorGUILayout.HorizontalScope())
+                    {
+                        if (GUILayout.Button("⤺ Back")) MoveSelectedTiles(VoxelGridDirection.Back);
+                        if (GUILayout.Button("⤻ Forward")) MoveSelectedTiles(VoxelGridDirection.Forward);
+                    }
+                    GUI.backgroundColor = originalBg;
                 }
 
-                EditorGUILayout.LabelField($"Create Adjacent Tile{countSuffix}", EditorStyles.boldLabel);
-                using (new EditorGUILayout.HorizontalScope())
+                // --- 3. CREATE ADJACENT TILE BOX (Xanh lá / Emerald Green) ---
+                EditorGUILayout.Space(2f);
+                GUI.backgroundColor = CreateBoxColor;
+                using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
                 {
-                    if (GUILayout.Button("Left")) CreateAdjacentTiles(VoxelGridDirection.Left);
-                    if (GUILayout.Button("Right")) CreateAdjacentTiles(VoxelGridDirection.Right);
-                    if (GUILayout.Button("Down")) CreateAdjacentTiles(VoxelGridDirection.Down);
-                    if (GUILayout.Button("Up")) CreateAdjacentTiles(VoxelGridDirection.Up);
-                }
-                using (new EditorGUILayout.HorizontalScope())
-                {
-                    if (GUILayout.Button("Back")) CreateAdjacentTiles(VoxelGridDirection.Back);
-                    if (GUILayout.Button("Forward")) CreateAdjacentTiles(VoxelGridDirection.Forward);
+                    GUI.backgroundColor = originalBg;
+                    EditorGUILayout.LabelField($"✚ Create Adjacent Tile{countSuffix}", EditorStyles.boldLabel);
+                    GUI.backgroundColor = CreateButtonColor;
+                    using (new EditorGUILayout.HorizontalScope())
+                    {
+                        if (GUILayout.Button("+ Left")) CreateAdjacentTiles(VoxelGridDirection.Left);
+                        if (GUILayout.Button("+ Right")) CreateAdjacentTiles(VoxelGridDirection.Right);
+                        if (GUILayout.Button("+ Down")) CreateAdjacentTiles(VoxelGridDirection.Down);
+                        if (GUILayout.Button("+ Up")) CreateAdjacentTiles(VoxelGridDirection.Up);
+                    }
+                    using (new EditorGUILayout.HorizontalScope())
+                    {
+                        if (GUILayout.Button("+ Back")) CreateAdjacentTiles(VoxelGridDirection.Back);
+                        if (GUILayout.Button("+ Forward")) CreateAdjacentTiles(VoxelGridDirection.Forward);
+                    }
+                    GUI.backgroundColor = originalBg;
                 }
             }
 
-            if (GUILayout.Button("Validate"))
+            EditorGUILayout.Space(2f);
+            using (new EditorGUILayout.HorizontalScope())
             {
-                ShowValidation();
-            }
+                Color prevColor = GUI.backgroundColor;
+                GUI.backgroundColor = new Color(0.55f, 0.92f, 0.60f);
+                if (GUILayout.Button("Validate"))
+                {
+                    ShowValidation();
+                }
 
-            if (GUILayout.Button("Bake To Shape"))
-            {
-                BakeShape();
-            }
+                GUI.backgroundColor = new Color(1.0f, 0.65f, 0.20f);
+                if (GUILayout.Button("Bake To Shape"))
+                {
+                    BakeShape();
+                }
 
-            if (GUILayout.Button("Bake Complete Level (Legacy)"))
-            {
-                BakeLayout();
+                GUI.backgroundColor = new Color(0.90f, 0.82f, 0.68f);
+                if (GUILayout.Button("Bake Complete Level (Legacy)"))
+                {
+                    BakeLayout();
+                }
+                GUI.backgroundColor = prevColor;
             }
 
             EditorGUILayout.Space();
             int currentSelectedCount = GetSelectedIndices().Count;
             if (currentSelectedCount > 1)
             {
-                EditorGUILayout.LabelField($"Batch Edit ({currentSelectedCount} Tiles)", EditorStyles.boldLabel);
-                using (new EditorGUILayout.HorizontalScope())
+                // --- 4. BATCH EDIT BOX (Tím / Lavender) ---
+                GUI.backgroundColor = BatchBoxColor;
+                using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
                 {
-                    batchMatchId = EditorGUILayout.IntField("Match ID", batchMatchId);
-                    if (GUILayout.Button("Set All", GUILayout.Width(60)))
+                    GUI.backgroundColor = originalBg;
+                    EditorGUILayout.LabelField($"⚙ Batch Edit ({currentSelectedCount} Tiles)", EditorStyles.boldLabel);
+                    using (new EditorGUILayout.HorizontalScope())
                     {
-                        ApplyBatchMatchId(batchMatchId);
+                        batchMatchId = EditorGUILayout.IntField("Match ID", batchMatchId);
+                        if (GUILayout.Button("Set All", GUILayout.Width(60)))
+                        {
+                            ApplyBatchMatchId(batchMatchId);
+                        }
+                    }
+                    using (new EditorGUILayout.HorizontalScope())
+                    {
+                        batchShell = EditorGUILayout.IntField("Shell", batchShell);
+                        if (GUILayout.Button("Set All", GUILayout.Width(60)))
+                        {
+                            ApplyBatchShell(batchShell);
+                        }
+                    }
+                    using (new EditorGUILayout.HorizontalScope())
+                    {
+                        batchFace = (VoxelGridDirection)EditorGUILayout.EnumPopup("Face", batchFace);
+                        if (GUILayout.Button("Set All", GUILayout.Width(60)))
+                        {
+                            ApplyBatchFace(batchFace);
+                        }
+                    }
+                    using (new EditorGUILayout.HorizontalScope())
+                    {
+                        batchRoll = EditorGUILayout.IntSlider("Roll", batchRoll, 0, 3);
+                        if (GUILayout.Button("Set All", GUILayout.Width(60)))
+                        {
+                            ApplyBatchRoll(batchRoll);
+                        }
+                    }
+                    using (new EditorGUILayout.HorizontalScope())
+                    {
+                        EditorGUILayout.LabelField("Quick Roll", GUILayout.Width(85));
+                        if (GUILayout.Button("0 (0°)")) ApplyBatchRoll(0);
+                        if (GUILayout.Button("1 (90°)")) ApplyBatchRoll(1);
+                        if (GUILayout.Button("2 (180°)")) ApplyBatchRoll(2);
+                        if (GUILayout.Button("3 (270°)")) ApplyBatchRoll(3);
+                    }
+                    using (new EditorGUILayout.HorizontalScope())
+                    {
+                        EditorGUILayout.LabelField("Rotate Group", GUILayout.Width(85));
+                        if (GUILayout.Button("Roll +90°"))
+                        {
+                            RotateSelectedRoll(1);
+                        }
+                        if (GUILayout.Button("Roll -90°"))
+                        {
+                            RotateSelectedRoll(-1);
+                        }
+                        if (GUILayout.Button("Yaw +90°"))
+                        {
+                            RotateSelectedYaw(90f);
+                        }
+                        if (GUILayout.Button("Yaw -90°"))
+                        {
+                            RotateSelectedYaw(-90f);
+                        }
                     }
                 }
-                using (new EditorGUILayout.HorizontalScope())
-                {
-                    batchShell = EditorGUILayout.IntField("Shell", batchShell);
-                    if (GUILayout.Button("Set All", GUILayout.Width(60)))
-                    {
-                        ApplyBatchShell(batchShell);
-                    }
-                }
-                using (new EditorGUILayout.HorizontalScope())
-                {
-                    EditorGUILayout.LabelField("Rotate Group", GUILayout.Width(85));
-                    if (GUILayout.Button("Roll +90°"))
-                    {
-                        RotateSelectedRoll(1);
-                    }
-                    if (GUILayout.Button("Roll -90°"))
-                    {
-                        RotateSelectedRoll(-1);
-                    }
-                    if (GUILayout.Button("Yaw +90°"))
-                    {
-                        RotateSelectedYaw(90f);
-                    }
-                }
+                GUI.backgroundColor = originalBg;
                 EditorGUILayout.Space();
             }
 
-            EditorGUILayout.LabelField("Selected Tile", EditorStyles.boldLabel);
+            string selectedHeader = currentSelectedCount > 1
+                ? $"Selected Tile (Lead: #{selectedEntry}) [Multi-Select: {currentSelectedCount} Tiles]"
+                : "Selected Tile";
+            EditorGUILayout.LabelField(selectedHeader, EditorStyles.boldLabel);
+            if (currentSelectedCount > 1)
+            {
+                multiSelectSyncPose = EditorGUILayout.ToggleLeft($"Sync Face & Roll edits to all {currentSelectedCount} selected tiles", multiSelectSyncPose);
+            }
             if (selectedEntry < 0 || selectedEntry >= layout.Entries.Count || layout.Entries[selectedEntry] == null)
             {
                 EditorGUILayout.HelpBox("Select a tile in the Scene view.", MessageType.Info);
@@ -282,36 +434,39 @@ namespace MahjongOut3D.Editor
             entry.UseSnapOffset = EditorGUILayout.Toggle("Use Adjacent Snap", entry.UseSnapOffset);
             if (entry.UseSnapOffset)
             {
-                entry.SnapDirection = (VoxelGridDirection)EditorGUILayout.EnumPopup("Adjacent Side", entry.SnapDirection);
-                entry.AdjacentDirectionSpace = (TileAdjacentDirectionSpace)EditorGUILayout.EnumPopup("Direction Space", entry.AdjacentDirectionSpace);
-                entry.AdjacentOffsetMode = (TileAdjacentOffsetMode)EditorGUILayout.EnumPopup("Overlap", entry.AdjacentOffsetMode);
-                entry.SnapOffsetSizeSource = (TileSnapOffsetSizeSource)EditorGUILayout.EnumPopup("Offset Size From", entry.SnapOffsetSizeSource);
-                int divisions = layout.SnapOffsetDivisions;
-                EditorGUILayout.LabelField("Tangential Offset", layout.SnapMode == TileLayoutSnapMode.Half
-                    ? "Each step is 1/2 of the real tile footprint"
-                    : layout.SnapMode == TileLayoutSnapMode.Quarter
-                        ? "Each step is 1/4 of the real tile footprint"
-                        : "Adjacent only; offsets use one full tile footprint");
-                entry.SnapOffsetU = EditorGUILayout.IntSlider("Snap Left / Right", entry.SnapOffsetU, -divisions, divisions);
-                entry.SnapOffsetV = EditorGUILayout.IntSlider("Snap Down / Up", entry.SnapOffsetV, -divisions, divisions);
-                using (new EditorGUILayout.HorizontalScope())
+                using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
                 {
-                    if (GUILayout.Button("Center")) SetSnapOffset(entry, 0, 0);
-                    if (GUILayout.Button("Left")) SetDirectionalFraction(entry, -1, 0);
-                    if (GUILayout.Button("Right")) SetDirectionalFraction(entry, 1, 0);
-                    if (GUILayout.Button("Down")) SetDirectionalFraction(entry, 0, -1);
-                    if (GUILayout.Button("Up")) SetDirectionalFraction(entry, 0, 1);
-                }
-                using (new EditorGUILayout.HorizontalScope())
-                {
-                    if (GUILayout.Button("Left + Down")) SetDirectionalFraction(entry, -1, -1);
-                    if (GUILayout.Button("Left + Up")) SetDirectionalFraction(entry, -1, 1);
-                    if (GUILayout.Button("Right + Down")) SetDirectionalFraction(entry, 1, -1);
-                    if (GUILayout.Button("Right + Up")) SetDirectionalFraction(entry, 1, 1);
-                }
-                if (GUILayout.Button("Apply Adjacent Snap"))
-                {
-                    ApplyAdjacentSnap(entry);
+                    entry.SnapDirection = (VoxelGridDirection)EditorGUILayout.EnumPopup("Adjacent Side", entry.SnapDirection);
+                    entry.AdjacentDirectionSpace = (TileAdjacentDirectionSpace)EditorGUILayout.EnumPopup("Direction Space", entry.AdjacentDirectionSpace);
+                    entry.AdjacentOffsetMode = (TileAdjacentOffsetMode)EditorGUILayout.EnumPopup("Overlap", entry.AdjacentOffsetMode);
+                    entry.SnapOffsetSizeSource = (TileSnapOffsetSizeSource)EditorGUILayout.EnumPopup("Offset Size From", entry.SnapOffsetSizeSource);
+                    int divisions = layout.SnapOffsetDivisions;
+                    EditorGUILayout.LabelField("Tangential Offset", layout.SnapMode == TileLayoutSnapMode.Half
+                        ? "Each step is 1/2 of the real tile footprint"
+                        : layout.SnapMode == TileLayoutSnapMode.Quarter
+                            ? "Each step is 1/4 of the real tile footprint"
+                            : "Adjacent only; offsets use one full tile footprint");
+                    entry.SnapOffsetU = EditorGUILayout.IntSlider("Snap Left / Right", entry.SnapOffsetU, -divisions, divisions);
+                    entry.SnapOffsetV = EditorGUILayout.IntSlider("Snap Down / Up", entry.SnapOffsetV, -divisions, divisions);
+                    using (new EditorGUILayout.HorizontalScope())
+                    {
+                        if (GUILayout.Button("Center")) SetSnapOffset(entry, 0, 0);
+                        if (GUILayout.Button("Left")) SetDirectionalFraction(entry, -1, 0);
+                        if (GUILayout.Button("Right")) SetDirectionalFraction(entry, 1, 0);
+                        if (GUILayout.Button("Down")) SetDirectionalFraction(entry, 0, -1);
+                        if (GUILayout.Button("Up")) SetDirectionalFraction(entry, 0, 1);
+                    }
+                    using (new EditorGUILayout.HorizontalScope())
+                    {
+                        if (GUILayout.Button("Left + Down")) SetDirectionalFraction(entry, -1, -1);
+                        if (GUILayout.Button("Left + Up")) SetDirectionalFraction(entry, -1, 1);
+                        if (GUILayout.Button("Right + Down")) SetDirectionalFraction(entry, 1, -1);
+                        if (GUILayout.Button("Right + Up")) SetDirectionalFraction(entry, 1, 1);
+                    }
+                    if (GUILayout.Button("Apply Adjacent Snap"))
+                    {
+                        ApplyAdjacentSnap(entry);
+                    }
                 }
             }
             entry.FinePositionOffset = EditorGUILayout.Vector3Field("Fine Position", entry.FinePositionOffset);
@@ -320,10 +475,26 @@ namespace MahjongOut3D.Editor
             if (EditorGUI.EndChangeCheck())
             {
                 Undo.RecordObject(layout, "Edit Mahjong Tile Placement");
-                bool poseChanged = previousFace != entry.Pose.Face
-                    || previousRoll != entry.Pose.RollQuarterTurns
-                    || previousFineRotation != entry.FineRotationOffset;
-                if (poseChanged)
+                bool faceChanged = previousFace != entry.Pose.Face;
+                bool rollChanged = previousRoll != entry.Pose.RollQuarterTurns;
+                bool fineRotChanged = previousFineRotation != entry.FineRotationOffset;
+
+                if (currentSelectedCount > 1 && multiSelectSyncPose && (faceChanged || rollChanged))
+                {
+                    if (faceChanged && rollChanged)
+                    {
+                        ApplyBatchPose(entry.Pose.Face, entry.Pose.RollQuarterTurns);
+                    }
+                    else if (faceChanged)
+                    {
+                        ApplyBatchFace(entry.Pose.Face);
+                    }
+                    else if (rollChanged)
+                    {
+                        ApplyBatchRoll(entry.Pose.RollQuarterTurns);
+                    }
+                }
+                else if (faceChanged || rollChanged || fineRotChanged)
                 {
                     RepositionAfterPoseChange(entry);
                 }
@@ -485,6 +656,88 @@ namespace MahjongOut3D.Editor
             SceneView.RepaintAll();
         }
 
+        private void ApplyBatchFace(VoxelGridDirection face)
+        {
+            List<int> indices = GetSelectedIndices();
+            if (indices.Count == 0 || layout == null) return;
+
+            Undo.RecordObject(layout, "Batch Set Tile Face");
+            batchFace = face;
+            for (int i = 0; i < indices.Count; i++)
+            {
+                TileAuthoringEntry entry = layout.Entries[indices[i]];
+                if (entry != null)
+                {
+                    entry.Pose.Face = face;
+                    entry.FineRotationOffset = Vector3.zero;
+                    TileAuthoringEntry snapSource = FindSnapSource(entry);
+                    if (entry.UseSnapOffset && snapSource != null)
+                    {
+                        ApplyAdjacentSnap(entry, snapSource, false);
+                    }
+                }
+            }
+            EditorUtility.SetDirty(layout);
+            Repaint();
+            SceneView.RepaintAll();
+        }
+
+        private void ApplyBatchRoll(int roll)
+        {
+            List<int> indices = GetSelectedIndices();
+            if (indices.Count == 0 || layout == null) return;
+
+            Undo.RecordObject(layout, "Batch Set Tile Roll");
+            int normalizedRoll = TileSnapMath.NormalizeRoll(roll);
+            batchRoll = normalizedRoll;
+            for (int i = 0; i < indices.Count; i++)
+            {
+                TileAuthoringEntry entry = layout.Entries[indices[i]];
+                if (entry != null)
+                {
+                    entry.Pose.RollQuarterTurns = normalizedRoll;
+                    entry.FineRotationOffset = Vector3.zero;
+                    TileAuthoringEntry snapSource = FindSnapSource(entry);
+                    if (entry.UseSnapOffset && snapSource != null)
+                    {
+                        ApplyAdjacentSnap(entry, snapSource, false);
+                    }
+                }
+            }
+            EditorUtility.SetDirty(layout);
+            Repaint();
+            SceneView.RepaintAll();
+        }
+
+        private void ApplyBatchPose(VoxelGridDirection face, int roll)
+        {
+            List<int> indices = GetSelectedIndices();
+            if (indices.Count == 0 || layout == null) return;
+
+            Undo.RecordObject(layout, "Batch Set Tile Pose");
+            int normalizedRoll = TileSnapMath.NormalizeRoll(roll);
+            batchFace = face;
+            batchRoll = normalizedRoll;
+            for (int i = 0; i < indices.Count; i++)
+            {
+                TileAuthoringEntry entry = layout.Entries[indices[i]];
+                if (entry != null)
+                {
+                    entry.Pose.Face = face;
+                    entry.Pose.RollQuarterTurns = normalizedRoll;
+                    entry.FineRotationOffset = Vector3.zero;
+                    TileAuthoringEntry snapSource = FindSnapSource(entry);
+                    if (entry.UseSnapOffset && snapSource != null)
+                    {
+                        ApplyAdjacentSnap(entry, snapSource, false);
+                    }
+                }
+            }
+            EditorUtility.SetDirty(layout);
+            Repaint();
+            SceneView.RepaintAll();
+        }
+
         private void RotateSelectedRoll(int quarterTurns)
         {
             List<int> indices = GetSelectedIndices();
@@ -498,6 +751,11 @@ namespace MahjongOut3D.Editor
                 {
                     entry.Pose.RollQuarterTurns = TileSnapMath.NormalizeRoll(entry.Pose.RollQuarterTurns + quarterTurns);
                     entry.FineRotationOffset = Vector3.zero;
+                    TileAuthoringEntry snapSource = FindSnapSource(entry);
+                    if (entry.UseSnapOffset && snapSource != null)
+                    {
+                        ApplyAdjacentSnap(entry, snapSource, false);
+                    }
                 }
             }
 
@@ -853,6 +1111,28 @@ namespace MahjongOut3D.Editor
             }
 
             Event current = Event.current;
+            if (current.type == EventType.KeyDown)
+            {
+                if (current.keyCode == KeyCode.Delete || current.keyCode == KeyCode.Backspace)
+                {
+                    if (GetSelectedIndices().Count > 0)
+                    {
+                        DeleteSelected();
+                        current.Use();
+                        return;
+                    }
+                }
+                else if (current.keyCode == KeyCode.D && (current.control || current.command))
+                {
+                    if (GetSelectedIndices().Count > 0)
+                    {
+                        DuplicateSelected();
+                        current.Use();
+                        return;
+                    }
+                }
+            }
+
             RefreshPreviewTiles();
             if (!placing && current.type == EventType.Layout)
             {

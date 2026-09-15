@@ -258,7 +258,7 @@ namespace MahjongOut3D.LevelSystem
         [SerializeField] private VoxelGridDirection defaultStandingFace = VoxelGridDirection.Back;
         [SerializeField, Range(0, 3)] private int defaultStandingRoll = 3;
         [SerializeField, Min(0f)] private float snapDistance = 0.18f;
-        [SerializeField, Min(0f)] private float tileGap = 0.03f;
+        [SerializeField, Min(0f)] private float tileGap = 0.02f;
         [SerializeField] private List<TileAuthoringEntry> entries = new List<TileAuthoringEntry>();
 
         public string LayoutName
